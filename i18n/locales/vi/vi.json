@@ -1,0 +1,78 @@
+{
+  "auth": {
+    "validation": {
+      "required": "Vui lòng nhập thông tin này",
+      "email_invalid": "Email không đúng định dạng",
+      "password_short": "Mật khẩu phải có ít nhất {min} ký tự"
+    },
+    "login": {
+      "title": "Đăng nhập",
+      "welcome": "Chào mừng",
+      "back": "bạn quay trở lại",
+      "email_label": "Email hoặc tên người dùng",
+      "email_placeholder": "Email hoặc tên người dùng",
+      "continue": "Tiếp tục",
+      "divider_or": "hoặc",
+      "continue_google": "Tiếp tục bằng Google",
+      "no_account": "Bạn chưa có tài khoản?",
+      "have_account": "Bạn đã có tài khoản?",
+      "signup": "Đăng ký",
+      "signin": "Đăng nhập"
+    },
+    "register": {
+      "title": "Đăng ký",
+      "submit": "Đăng ký ngay",
+      "welcome": "Đăng ký để",
+      "start": "bắt đầu nghe",
+      "email_label": "Địa chỉ Email",
+      "next": "Tiếp theo",
+      "step_counter": "Bước {step} của {total}",
+      "password_title": "Tạo mật khẩu",
+      "password_label": "Mật khẩu",
+      "password_criteria_title": "Mật khẩu phải có ít nhất",
+      "criteria_letter": "1 chữ cái",
+      "criteria_special": "1 chữ số hoặc ký tự đặc biệt",
+      "criteria_length": "10 ký tự",
+      "profile_title": "Giới thiệu bản thân",
+      "name_label": "Tên hồ sơ",
+      "name_help": "Tên này sẽ xuất hiện trên hồ sơ của bạn.",
+      "dob_label": "Ngày sinh",
+      "gender_label": "Giới tính",
+      "gender_male": "Nam",
+      "gender_female": "Nữ",
+      "gender_other": "Khác",
+      "terms_title": "Điều khoản & Điều kiện",
+      "marketing_opt_out": "Tôi không muốn nhận tin nhắn tiếp thị từ Melonia",
+      "share_data_opt_in": "Chia sẻ dữ liệu đăng ký vì mục đích tiếp thị.",
+      "terms_text": "Tôi đồng ý với Điều khoản và điều kiện sử dụng của Melonia."
+    },
+    "errors": {
+      "required": "Vui lòng nhập thông tin",
+      "email_invalid": "Email không hợp lệ"
+    }
+  },
+  "header": {
+    "search_placeholder": "Bạn muốn phát nội dung gì?",
+    "profile": "Hồ sơ",
+    "create_song": "Tạo bài hát",
+    "logout": "Đăng xuất",
+    "settings": "Cài đặt"
+  },
+  "sidebar": {
+    "library": "Thư viện"
+  },
+  "notify": {
+    "success": "Thành công",
+    "error": "Lỗi",
+    "info": "Thông tin",
+    "warning": "Cảnh báo",
+    "logout_success": "Đăng xuất thành công"
+  },
+  "profile": {
+    "detail_profile": "Chi tiết hồ sơ",
+    "upload_image_consent": "Bằng cách tiếp tục, bạn đồng ý cho phép Melonia truy cập vào hình ảnh bạn đã chọn để tải lên. Vui lòng đảm bảo bạn có quyền tải lên hình ảnh. ",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "choose_image": "Chọn ảnh"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "auth": {
+    "validation": {
+      "required": "This field is required",
+      "email_invalid": "Invalid email address",
+      "password_short": "Password must be at least {min} characters"
+    },
+    "login": {
+      "title": "Log in",
+      "welcome": "Welcome",
+      "back": "back",
+      "email_label": "Email or username",
+      "email_placeholder": "Email or username",
+      "continue": "Continue",
+      "divider_or": "or",
+      "continue_google": "Continue with Google",
+      "no_account": "Don't have an account?",
+      "have_account": "Do you already have an account?",
+      "signup": "Sign up",
+      "signin": "Sign in"
+    },
+    "register": {
+      "title": "Sign up",
+      "submit": "Sign up",
+      "welcome": "Sign up to",
+      "start": "start listening",
+      "email_label": "Address Email",
+      "next": "Next",
+      "step_counter": "Step {step} of {total}",
+      "password_title": "Create a password",
+      "password_label": "Password",
+      "password_criteria_title": "Password must contain at least",
+      "criteria_letter": "1 letter",
+      "criteria_special": "1 number or special character",
+      "criteria_length": "10 characters",
+      "profile_title": "Tell us about yourself",
+      "name_label": "Profile name",
+      "name_help": "This name will appear on your profile.",
+      "dob_label": "Date of birth",
+      "gender_label": "Gender",
+      "gender_male": "Male",
+      "gender_female": "Female",
+      "gender_other": "Other",
+      "terms_title": "Terms & Conditions",
+      "marketing_opt_out": "I do not want to receive marketing messages from Melonia",
+      "share_data_opt_in": "Share my registration data for marketing purposes.",
+      "terms_text": "I agree to the Melonia Terms and Conditions of Use."
+    },
+    "errors": {
+      "required": "Field is required",
+      "email_invalid": "Invalid email address"
+    }
+  },
+  "header": {
+    "search_placeholder": "What do you want to listen to?",
+    "profile": "Profile",
+    "create_song": "Create Song",
+    "logout": "Log out",
+    "settings": "Settings"
+  },
+  "sidebar": {
+    "library": "Library"
+  },
+  "notify": {
+    "success": "Success",
+    "error": "Error",
+    "info": "Info",
+    "warning": "Warning",
+    "logout_success": "Logged out successfully"
+  },
+  "profile": {
+    "detail_profile": "Profile detail",
+    "upload_image_consent": "By continuing, you agree to allow Melonia to access the image you have selected to upload. Please make sure you have the rights to upload the image.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "choose_image": "Select image"
+  }
+}
