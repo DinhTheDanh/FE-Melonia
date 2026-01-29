@@ -4,11 +4,11 @@
       <div class="flex justify-between items-center mb-8">
         <div class="flex items-center gap-4">
           <h1 class="text-3xl font-bold tracking-tight text-white">
-            Tải lên Studio
+            {{ $t("song.upload_studio") }}
           </h1>
           <UButton
             icon="i-lucide-disc-3"
-            label="Tạo Album Mới"
+            :label="$t('song.create_new_album')"
             color="white"
             variant="soft"
             size="sm"
@@ -24,7 +24,7 @@
           icon="i-lucide-x"
           @click="resetForm"
         >
-          Hủy bỏ
+          {{ $t("song.cancel") }}
         </UButton>
       </div>
 
@@ -62,15 +62,15 @@
             />
           </div>
           <h3 class="text-2xl font-bold mb-3 text-white">
-            Kéo thả bài hát vào đây
+            {{ $t("song.drag_drop_title") }}
           </h3>
           <p class="text-neutral-400 mb-8 font-medium">
-            Hỗ trợ MP3, WAV, M4A, OGG
+            {{ $t("song.drag_drop_subtitle") }}
           </p>
           <UButton
             color="primary"
             variant="solid"
-            label="Chọn file từ máy tính"
+            :label="$t('song.select_file_button')"
             size="lg"
             class="font-bold px-8 rounded-full"
             :ui="{
@@ -100,7 +100,9 @@
               class="w-full h-full flex flex-col items-center justify-center text-neutral-500 gap-3"
             >
               <UIcon name="i-lucide-image" class="size-16 opacity-50" />
-              <span class="text-sm font-semibold">Tải ảnh bìa (500x500)</span>
+              <span class="text-sm font-semibold">{{
+                $t("song.cover_image")
+              }}</span>
             </div>
 
             <div
@@ -109,7 +111,9 @@
             >
               <div class="flex flex-col items-center text-white">
                 <UIcon name="i-lucide-camera" class="size-10 mb-2" />
-                <span class="text-sm font-bold">Thay đổi ảnh</span>
+                <span class="text-sm font-bold">{{
+                  $t("song.change_image")
+                }}</span>
               </div>
             </div>
             <input
@@ -127,7 +131,7 @@
             <div
               class="text-[10px] text-neutral-400 uppercase tracking-wider font-bold mb-3"
             >
-              Thông tin file
+              {{ $t("song.file_info") }}
             </div>
             <div class="flex items-center gap-3 text-sm text-white mb-2">
               <UIcon
@@ -142,7 +146,8 @@
               class="flex justify-between items-center text-xs text-neutral-500 border-t border-white/10 pt-3 mt-1"
             >
               <span
-                >{{ (form.audioFile?.size / 1024 / 1024).toFixed(2) }} MB</span
+                >{{ (form.audioFile?.size / 1024 / 1024).toFixed(2) }}
+                {{ $t("song.file_size") }}</span
               >
               <span
                 class="font-mono bg-white/10 px-2 py-0.5 rounded text-white"
@@ -154,10 +159,14 @@
 
         <div class="lg:col-span-8 space-y-8">
           <div class="flex gap-4 mb-3!">
-            <UFormGroup label="Tiêu đề bài hát" required :ui="labelStyle">
+            <UFormGroup
+              :label="$t('song.song_title')"
+              required
+              :ui="labelStyle"
+            >
               <UInput
                 v-model="form.title"
-                placeholder="Nhập tên bài hát..."
+                :placeholder="$t('song.song_title_placeholder')"
                 size="xl"
                 autofocus
                 :ui="inputSpotifyStyle"
@@ -165,14 +174,19 @@
             </UFormGroup>
 
             <div class="grid grid-cols-1 gap-6 flex-1">
-              <UFormGroup label="Nghệ sĩ & Featuring" required :ui="labelStyle">
+              <UFormGroup
+                :label="$t('song.artists_featuring')"
+                required
+                :ui="labelStyle"
+              >
                 <USelectMenu
                   v-model="form.selectedArtists"
-                  :searchable="searchArtists"
-                  placeholder="Tìm kiếm nghệ sĩ hợp tác..."
+                  :items="allArtists"
+                  @click="fetchArtists"
+                  :placeholder="$t('song.artists_placeholder')"
                   multiple
-                  by="user_id"
-                  option-attribute="FullName"
+                  value-key="UserId"
+                  label-key="FullName"
                   size="xl"
                   :ui="inputSpotifyStyle"
                   :ui-menu="{
@@ -184,57 +198,32 @@
                     height: 'max-h-60',
                   }"
                 >
-                  <template #label>
-                    <div
-                      v-if="form.selectedArtists.length"
-                      class="flex flex-wrap gap-2"
-                    >
-                      <span
-                        v-for="artist in form.selectedArtists"
-                        :key="artist.user_id"
-                        class="inline-flex items-center bg-white/10 rounded-full px-3 py-1 text-sm"
-                      >
-                        {{ artist.FullName }}
-                        <span
-                          v-if="
-                            currentUser &&
-                            artist.user_id === currentUser.user_id
-                          "
-                          class="ml-1 text-[10px] text-[#1DB954] font-bold"
-                          >(Main)</span
-                        >
-                      </span>
+                  <template #item="{ item }">
+                    <div class="flex items-center justify-around">
+                      <div class="flex items-center">
+                        <UAvatar :src="item.Avatar" size="2xs" class="mr-2" />
+                        <span class="truncate">{{ item.FullName }}</span>
+                      </div>
+                      <UIcon :name="'i-lucide-tick'"></UIcon>
                     </div>
-                    <span v-else class="text-neutral-500">Chọn nghệ sĩ...</span>
-                  </template>
-
-                  <template #option="{ option }">
-                    <UAvatar :src="option.Avatar" size="2xs" class="mr-2" />
-                    <span class="truncate">{{ option.FullName }}</span>
-                    <UBadge
-                      v-if="
-                        currentUser && option.user_id === currentUser.user_id
-                      "
-                      size="xs"
-                      color="primary"
-                      variant="subtle"
-                      class="ml-auto"
-                      >Main</UBadge
-                    >
                   </template>
                 </USelectMenu>
               </UFormGroup>
             </div>
           </div>
 
-          <UFormGroup label="Thể loại chính" required :ui="labelStyle">
+          <UFormGroup
+            :label="$t('song.primary_genre')"
+            required
+            :ui="labelStyle"
+          >
             <USelectMenu
               v-model="form.selectedGenres"
               multiple
               :items="availableGenres"
-              option-attribute="Name"
-              value-attribute="Id"
-              placeholder="Chọn thể loại..."
+              label-key="Name"
+              value-key="Id"
+              :placeholder="$t('song.genre_placeholder')"
               size="xl"
               :ui="inputSpotifyStyle"
               :ui-menu="{
@@ -256,10 +245,10 @@
               <label
                 class="text-sm font-bold text-neutral-300 flex items-center gap-2"
               >
-                <UIcon name="i-lucide-disc" /> Thêm vào Album (Tùy chọn)
+                <UIcon name="i-lucide-disc" /> {{ $t("song.add_to_album") }}
               </label>
               <UButton
-                label="Tạo mới"
+                :label="$t('song.create_new')"
                 size="xs"
                 color="white"
                 variant="soft"
@@ -271,9 +260,9 @@
             <USelectMenu
               v-model="form.selectedAlbum"
               :items="myAlbums"
-              placeholder="Chọn album (hoặc để trống nếu là Single)..."
-              option-attribute="title"
-              value-attribute="album_id"
+              :placeholder="$t('song.select_album')"
+              label-key="title"
+              value-key="album_id"
               size="lg"
               :ui="inputSpotifyStyle"
               clearable
@@ -291,7 +280,7 @@
               </template>
             </USelectMenu>
             <p class="text-xs text-neutral-500 mt-2">
-              Nếu không chọn, bài hát sẽ được hiểu là Single độc lập.
+              {{ $t("song.no_album_notice") }}
             </p>
           </div>
 
@@ -299,8 +288,7 @@
             class="pt-8 mt-4 border-t border-white/10 flex items-center justify-end gap-4"
           >
             <div class="mr-auto text-xs text-neutral-500 max-w-xs">
-              * Bằng việc tải lên, bạn xác nhận quyền sở hữu đối với tác phẩm
-              này.
+              {{ $t("song.disclaimer") }}
             </div>
             <UButton
               :loading="isSubmitting"
@@ -319,106 +307,186 @@
               }"
               @click="handleSubmit"
             >
-              {{ isSubmitting ? "Đang xử lý..." : "Đăng tải ngay" }}
+              {{ isSubmitting ? $t("song.uploading") : $t("song.upload_now") }}
             </UButton>
           </div>
         </div>
       </div>
 
-      <div
-        v-if="isOpenCreateAlbum"
-        class="fixed top-0 left-0 right-0 bottom-0 z-999 w-full flex items-center justify-center bg-black/10 backdrop-blur-sm"
-      >
+      <!-- UPLOAD TRACKING MODAL -->
+      <Transition name="fade">
         <div
-          class="p-6 text-white bg-[#282828] w-[700px] rounded-lg"
-          @click.stop
+          v-if="isSubmitting && showUploadTracker"
+          class="fixed top-0 left-0 right-0 bottom-0 z-[999] w-full flex items-center justify-center bg-black/40 backdrop-blur-sm"
         >
-          <div class="flex justify-between items-center mb-6">
-            <h3 class="text-2xl font-bold tracking-tight">Tạo Album Mới</h3>
-            <UButton
-              icon="i-lucide-x"
-              color="gray"
-              variant="ghost"
-              class="hover:bg-white/10 rounded-full"
-              @click="isOpenCreateAlbum = false"
-            />
-          </div>
+          <div
+            class="p-8 text-white bg-[#282828] rounded-xl shadow-2xl max-w-md w-full mx-4 border border-white/10"
+          >
+            <div class="flex flex-col items-center gap-6">
+              <!-- Spinner -->
+              <div class="relative w-16 h-16">
+                <div
+                  class="absolute inset-0 border-4 border-transparent border-t-[#1DB954] border-r-[#1DB954] rounded-full animate-spin"
+                ></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <UIcon name="i-lucide-music" class="size-8 text-[#1DB954]" />
+                </div>
+              </div>
 
-          <div class="flex flex-col sm:flex-row gap-6">
-            <div
-              class="group relative w-45 h-45 shrink-0 mx-auto sm:mx-0 shadow-[0_8px_40px_rgba(0,0,0,0.6)]"
-            >
-              <img
-                v-if="albumCoverPreview"
-                :src="albumCoverPreview"
-                class="w-full h-full object-cover rounded shadow-lg"
-              />
+              <!-- Status Text -->
+              <div class="text-center">
+                <h3 class="text-lg font-bold mb-2">{{ statusMessage }}</h3>
+                <p class="text-sm text-neutral-400">{{ uploadPercent }}%</p>
+              </div>
+
+              <!-- Progress Bar -->
               <div
-                v-else
-                class="w-full h-full bg-[#3E3E3E] flex flex-col items-center justify-center rounded shadow-lg gap-2"
+                class="w-full bg-neutral-700 rounded-full h-2 overflow-hidden"
               >
-                <UIcon name="i-lucide-disc-2" class="size-14 text-[#7F7F7F]" />
-                <span class="text-xs font-bold text-[#7F7F7F]">Ảnh bìa</span>
+                <div
+                  class="bg-gradient-to-r from-[#1DB954] to-[#1ed760] h-full transition-all duration-300"
+                  :style="{ width: uploadPercent + '%' }"
+                ></div>
               </div>
+
+              <!-- Upload Details -->
               <div
-                class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer rounded"
-                @click="triggerAlbumFileInput"
+                v-if="uploadFileInfo"
+                class="w-full p-4 bg-black/30 rounded-lg border border-white/5"
               >
-                <UIcon name="i-lucide-camera" class="size-8 mb-2 text-white" />
-                <span class="text-[10px] font-bold uppercase tracking-widest"
-                  >Tải lên</span
-                >
-              </div>
-              <input
-                type="file"
-                ref="albumFileInputRef"
-                class="hidden"
-                accept="image/*"
-                @change="handleAlbumFileSelect"
-              />
-            </div>
-
-            <div class="flex-1 flex flex-col gap-4">
-              <div class="space-y-1">
-                <label class="text-[11px] font-bold text-neutral-400 uppercase"
-                  >Tên Album</label
-                >
-                <input
-                  v-model="albumForm.title"
-                  type="text"
-                  placeholder="Nhập tên album..."
-                  class="w-full bg-[#3E3E3E] text-white text-base font-bold px-3 py-3 rounded border-transparent focus:border-transparent focus:ring-1 focus:ring-white/30 placeholder:text-neutral-500 transition-all"
-                />
-              </div>
-
-              <div class="space-y-1">
-                <label class="text-[11px] font-bold text-neutral-400 uppercase"
-                  >Ngày phát hành</label
-                >
-                <input
-                  v-model="albumForm.releaseDate"
-                  type="date"
-                  class="w-full bg-[#3E3E3E] text-white text-sm font-medium px-3 py-3 rounded border-transparent focus:border-transparent focus:ring-1 focus:ring-white/30 appearance-none [&::-webkit-calendar-picker-indicator]:invert"
-                />
+                <div class="space-y-2 text-xs">
+                  <div class="flex justify-between">
+                    <span class="text-neutral-400"
+                      >{{ $t("song.file_info") }}:</span
+                    >
+                    <span class="text-white font-medium">{{
+                      uploadFileInfo
+                    }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-neutral-400"
+                      >{{ $t("song.file_size") }}:</span
+                    >
+                    <span class="text-white font-medium">{{
+                      uploadFileSize
+                    }}</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div class="flex justify-end mt-8 pt-4 border-t border-white/10">
-            <UButton
-              :loading="isCreatingAlbum"
-              :disabled="!albumForm.title"
-              color="white"
-              variant="solid"
-              size="lg"
-              class="font-bold px-8 rounded-full min-w-[120px] flex justify-center hover:scale-105 transition-transform"
-              @click="handleCreateAlbum"
-            >
-              Lưu Album
-            </UButton>
           </div>
         </div>
-      </div>
+      </Transition>
+
+      <!-- ALBUM MODAL -->
+      <Transition name="fade">
+        <div
+          v-if="isOpenCreateAlbum"
+          class="fixed top-0 left-0 right-0 bottom-0 z-999 w-full flex items-center justify-center bg-black/10 backdrop-blur-sm"
+        >
+          <div
+            class="p-6 text-white bg-[#282828] w-[700px] rounded-lg"
+            @click.stop
+          >
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-2xl font-bold tracking-tight">
+                {{ $t("song.create_album_modal_title") }}
+              </h3>
+              <UButton
+                icon="i-lucide-x"
+                color="gray"
+                variant="ghost"
+                class="hover:bg-white/10 rounded-full"
+                @click="isOpenCreateAlbum = false"
+              />
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-6">
+              <div
+                class="group relative w-45 h-45 shrink-0 mx-auto sm:mx-0 shadow-[0_8px_40px_rgba(0,0,0,0.6)]"
+              >
+                <img
+                  v-if="albumCoverPreview"
+                  :src="albumCoverPreview"
+                  class="w-full h-full object-cover rounded shadow-lg"
+                />
+                <div
+                  v-else
+                  class="w-full h-full bg-[#3E3E3E] flex flex-col items-center justify-center rounded shadow-lg gap-2"
+                >
+                  <UIcon
+                    name="i-lucide-disc-2"
+                    class="size-14 text-[#7F7F7F]"
+                  />
+                  <span class="text-xs font-bold text-[#7F7F7F]">{{
+                    $t("song.cover_image")
+                  }}</span>
+                </div>
+                <div
+                  class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer rounded"
+                  @click="triggerAlbumFileInput"
+                >
+                  <UIcon
+                    name="i-lucide-camera"
+                    class="size-8 mb-2 text-white"
+                  />
+                  <span
+                    class="text-[10px] font-bold uppercase tracking-widest"
+                    >{{ $t("song.upload_now") }}</span
+                  >
+                </div>
+                <input
+                  type="file"
+                  ref="albumFileInputRef"
+                  class="hidden"
+                  accept="image/*"
+                  @change="handleAlbumFileSelect"
+                />
+              </div>
+
+              <div class="flex-1 flex flex-col gap-4">
+                <div class="space-y-1">
+                  <label
+                    class="text-[11px] font-bold text-neutral-400 uppercase"
+                    >{{ $t("song.album_title") }}</label
+                  >
+                  <input
+                    v-model="albumForm.title"
+                    type="text"
+                    :placeholder="$t('song.album_title_placeholder')"
+                    class="w-full bg-[#3E3E3E] text-white text-base font-bold px-3 py-3 rounded border-transparent focus:border-transparent focus:ring-1 focus:ring-white/30 placeholder:text-neutral-500 transition-all"
+                  />
+                </div>
+
+                <div class="space-y-1">
+                  <label
+                    class="text-[11px] font-bold text-neutral-400 uppercase"
+                    >{{ $t("song.release_date") }}</label
+                  >
+                  <input
+                    v-model="albumForm.releaseDate"
+                    type="date"
+                    class="w-full bg-[#3E3E3E] text-white text-sm font-medium px-3 py-3 rounded border-transparent focus:border-transparent focus:ring-1 focus:ring-white/30 appearance-none [&::-webkit-calendar-picker-indicator]:invert"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-end mt-8 pt-4 border-t border-white/10">
+              <UButton
+                :loading="isCreatingAlbum"
+                :disabled="!albumForm.title"
+                color="white"
+                variant="solid"
+                size="lg"
+                :label="$t('song.save_album')"
+                class="font-bold px-8 rounded-full min-w-[120px] flex justify-center hover:scale-105 transition-transform"
+                @click="handleCreateAlbum"
+              />
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
@@ -429,6 +497,7 @@ import musicApi from "~/api/musicApi";
 import fileApi from "~/api/fileApi";
 import userApi from "~/api/userApi";
 import artistApi from "~/api/artistApi";
+import { calculateMD5 } from "~/utils/fileHasher";
 
 definePageMeta({ layout: "auth" });
 
@@ -442,7 +511,15 @@ const currentStep = ref(1);
 const isDragging = ref(false);
 const audioInputRef = ref(null);
 const imageInputRef = ref(null);
+const uploadProgress = ref(0);
+const statusMessage = ref("");
 const toast = useToast();
+
+// Upload tracking state
+const showUploadTracker = ref(false);
+const uploadPercent = ref(0);
+const uploadFileInfo = ref("");
+const uploadFileSize = ref("");
 
 // State form
 const form = reactive({
@@ -469,7 +546,7 @@ const albumForm = reactive({
 
 // Styles
 const inputSpotifyStyle = {
-  base: "bg-[#3E3E3E] text-white ring-0 focus:ring-2 focus:ring-primary placeholder:text-neutral-400",
+  base: "bg-[#3E3E3E] text-white ring-0 focus:ring-2 w-[300px] focus:ring-primary placeholder:text-neutral-400",
   rounded: "rounded-md",
   padding: { xl: "py-3.5 px-4", lg: "py-3 px-4" },
 };
@@ -498,7 +575,7 @@ const fetchGenresIfNeeded = async () => {
   }
 };
 
-const searchArtists = async (q) => {
+const fetchArtists = async (q) => {
   if (allArtists.value.length === 0) {
     try {
       const res = await artistApi.getArtists();
@@ -537,8 +614,8 @@ const refreshMyAlbums = async (userId) => {
 const processAudio = (file) => {
   if (!file.type.startsWith("audio/")) {
     toast.add({
-      title: "Lỗi",
-      description: "Vui lòng chọn file âm thanh",
+      title: $t('song.error_title'),
+      description: $t('song.select_audio_error'),
       color: "red",
     });
     return;
@@ -570,54 +647,135 @@ const handleImageSelect = (e) => {
 };
 const triggerImageInput = () => imageInputRef.value.click();
 
-// --- SUBMIT SONG ---
-const handleSubmit = async () => {
-  isSubmitting.value = true;
+// Upload helper functions
+const uploadCoverImage = async () => {
+  if (!form.coverImageFile) return "";
   try {
+    updateUploadStatus($t("song.upload_cover_image"), 10);
+    const imgRes = await fileApi.uploadDirect(form.coverImageFile, "image");
+    updateUploadStatus($t("song.upload_cover_image"), 30);
+    return imgRes.secure_url;
+  } catch (error) {
+    console.error("Error uploading cover image:", error);
+    throw error;
+  }
+};
+
+const checkAndUploadAudio = async () => {
+  if (!form.audioFile) return { audioUrl: "", duration: 0, fileHash: "" };
+
+  try {
+    updateUploadStatus($t("song.checking_file"), 35);
+
+    const fileHash = await calculateMD5(form.audioFile);
+    console.log("File Hash:", fileHash);
+
+    const checkRes = await musicApi.checkHash(fileHash);
+
+    if (checkRes.Exists) {
+      console.log("File already exists. Using cached URL:", checkRes.FileUrl);
+      updateUploadStatus($t("song.file_exists"), 70);
+      uploadPercent.value = 70;
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      return {
+        audioUrl: checkRes.FileUrl,
+        duration: checkRes.Duration,
+        fileHash: fileHash,
+      };
+    } else {
+      console.log("New file. Starting upload...");
+      const filename = form.audioFile.name;
+      updateUploadStatus($t("song.uploading_music", { filename }), 40);
+      uploadFileInfo.value = filename;
+      uploadFileSize.value = `${(form.audioFile.size / 1024 / 1024).toFixed(2)} MB`;
+
+      const audioRes = await fileApi.uploadDirect(
+        form.audioFile,
+        "video",
+        (percent) => {
+          uploadPercent.value = Math.min(40 + percent * 0.5, 90);
+        },
+      );
+      console.log("Cloudinary Response:", audioRes);
+
+      return {
+        audioUrl: audioRes.secure_url,
+        duration: audioRes.duration,
+        fileHash: fileHash,
+      };
+    }
+  } catch (error) {
+    console.error("Error uploading audio:", error);
+    throw error;
+  }
+};
+
+const updateUploadStatus = (message, percent) => {
+  statusMessage.value = message;
+  uploadPercent.value = percent;
+};
+
+const handleSubmit = async () => {
+  if (isSubmitting.value) return;
+
+  isSubmitting.value = true;
+  showUploadTracker.value = true;
+  uploadPercent.value = 0;
+  uploadFileInfo.value = "";
+  uploadFileSize.value = "";
+
+  try {
+    // Upload cover image
     let thumbnailUrl = "";
     if (form.coverImageFile) {
-      const fd = new FormData();
-      fd.append("file", form.coverImageFile);
-      const res = await fileApi.uploadImage(fd);
-      thumbnailUrl = res.url || res.data?.url || res;
+      thumbnailUrl = await uploadCoverImage();
     }
 
-    let audioUrl = "";
-    if (form.audioFile) {
-      const fd = new FormData();
-      fd.append("file", form.audioFile);
-      const res = await fileApi.uploadAudio(fd);
-      audioUrl = res.url || res.data?.url || res;
-    }
+    // Upload audio or use cached version
+    const { audioUrl, duration, fileHash } = await checkAndUploadAudio();
+
+    // Save song info
+    updateUploadStatus($t("song.saving_song_info"), 95);
 
     const createPayload = {
-      title: form.title,
-      file_url: audioUrl,
-      thumbnail: thumbnailUrl,
-      duration: form.duration,
-      is_public: true,
-      artist_ids: form.selectedArtists.map((u) => u.user_id),
-      genre_ids: form.selectedGenres,
-      album_id: form.selectedAlbum,
+      Title: form.title,
+      FileUrl: audioUrl,
+      Thumbnail: thumbnailUrl,
+      Duration: Math.round(duration || form.duration),
+      FileHash: fileHash,
+      ArtistIds: form.selectedArtists.map((u) => u.UserId || u.user_id),
+      GenreIds: form.selectedGenres,
+      AlbumId: form.selectedAlbum,
+      Lyrics: "",
     };
 
+    console.log("Creating song with payload:", createPayload);
     await musicApi.createSong(createPayload);
 
+    uploadPercent.value = 100;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     toast.add({
-      title: "Thành công",
-      description: "Đã đăng tải bài hát!",
+      title: $t("song.success_title"),
+      description: $t("song.success_message"),
       color: "green",
     });
+
     resetForm();
   } catch (error) {
-    console.error(error);
+    console.error("Error submitting song:", error);
     toast.add({
-      title: "Lỗi",
-      description: "Không thể đăng tải bài hát.",
+      title: $t("song.error_title"),
+      description: $t("song.error_message"),
       color: "red",
     });
   } finally {
     isSubmitting.value = false;
+    showUploadTracker.value = false;
+    statusMessage.value = "";
+    uploadPercent.value = 0;
+    uploadFileInfo.value = "";
+    uploadFileSize.value = "";
   }
 };
 
@@ -686,15 +844,15 @@ const handleCreateAlbum = async () => {
     if (newAlbumId) form.selectedAlbum = newAlbumId;
 
     toast.add({
-      title: "Thành công",
-      description: "Đã tạo Album mới",
+      title: $t('song.success_title'),
+      description: $t('song.success_title'),
       color: "green",
     });
     isOpenCreateAlbum.value = false;
   } catch (e) {
     console.error(e);
     toast.add({
-      title: "Lỗi",
+      title: $t('song.error_title'),
       description: "Không thể tạo album",
       color: "red",
     });

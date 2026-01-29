@@ -1,20 +1,21 @@
 import axios from "axios";
 
-const TOKEN_KEY = "access_token";
 const baseURL = process.env.BE_URL || "http://localhost:5111/api/v1";
 
 const axiosClient = axios.create({
   baseURL: baseURL,
   withCredentials: true,
-  headers: {},
-  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  timeout: 60000,
 });
 
 axiosClient.interceptors.request.use(
   (config) => {
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 axiosClient.interceptors.response.use(
@@ -32,7 +33,7 @@ axiosClient.interceptors.response.use(
     }
 
     return Promise.reject(error.response ? error.response.data : error);
-  }
+  },
 );
 
 export default axiosClient;
