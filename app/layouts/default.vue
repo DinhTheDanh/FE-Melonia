@@ -161,6 +161,24 @@ const items = ref([
     to: "/user/profile",
   },
   {
+    label: t("song.my_music"),
+    to: "/user/my-music",
+    icon: "i-lucide-music",
+  },
+  {
+    label: t("song.my_albums"),
+    to: "/user/my-albums",
+    icon: "i-lucide-disc",
+  },
+  {
+    label: t("song.my_playlists"),
+    to: "/user/my-playlists",
+    icon: "i-lucide-list-music",
+  },
+  {
+    label: "-",
+  },
+  {
     label: t("header.create_song"),
     to: "/create/song",
   },

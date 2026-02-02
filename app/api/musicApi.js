@@ -65,5 +65,15 @@ const musicApi = {
   deleteAlbum(albumId) {
     return axiosClient.delete(`/Music/album/${albumId}`);
   },
+
+  // Cập nhật bài hát
+  updateSong(songId, data) {
+    return axiosClient.put(`/Music/song/${songId}`, data);
+  },
+
+  // Cập nhật album
+  updateAlbum(albumId, data) {
+    return axiosClient.put(`/Music/album/${albumId}`, data);
+  },
 };
 export default musicApi;

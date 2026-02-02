@@ -22,8 +22,13 @@ const authApi = {
   },
 
   // Đăng xuất
-  logout() {
-    return axiosClient.post("/Auth/logout");
+  logout(data) {
+    return axiosClient.post("/Auth/logout", data);
+  },
+
+  // Refresh token
+  refreshToken(data) {
+    return axiosClient.post("/Auth/refresh-token", data);
   },
 
   // Đổi mật khẩu
@@ -38,7 +43,7 @@ const authApi = {
 
   // Đặt lại mật khẩu
   resetPassword(data) {
-    return axiosClient.put("/Auth/reset-password", data);
+    return axiosClient.post("/Auth/reset-password", data);
   },
 };
 export default authApi;

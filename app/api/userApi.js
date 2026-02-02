@@ -13,7 +13,7 @@ const userApi = {
 
   // Update interest
   updateInterest(data) {
-    return axiosClient.put("/User/update-interests", data);
+    return axiosClient.post("/User/update-interests", data);
   },
 };
 export default userApi;
