@@ -171,6 +171,24 @@
     "status_inactive": "Ngừng hoạt động",
     "status_pending": "Chờ duyệt",
     "status_updated": "Cập nhật trạng thái thành công!",
-    "status_update_error": "Cập nhật trạng thái thất bại. Vui lòng thử lại."
+    "status_update_error": "Cập nhật trạng thái thất bại. Vui lòng thử lại.",
+    "songs_count": "bài hát",
+    "search_in_playlist": "Tìm trong danh sách",
+    "date_added": "Ngày thêm",
+    "selected": "đã chọn",
+    "album_created_success": "Tạo album thành công!",
+    "album_create_error": "Không thể tạo album. Vui lòng thử lại."
+  },
+  "album": {
+    "add_songs": "Thêm bài hát",
+    "no_available_songs": "Không có bài hát nào để thêm",
+    "remove_from_album": "Xóa khỏi album",
+    "remove_song_title": "Xóa bài hát khỏi album",
+    "remove_song_confirmation": "Bạn có chắc chắn muốn xóa bài hát này khỏi album?",
+    "song_added_success": "Đã thêm bài hát vào album!",
+    "song_add_error": "Không thể thêm bài hát. Vui lòng thử lại.",
+    "song_removed_success": "Đã xóa bài hát khỏi album!",
+    "song_remove_error": "Không thể xóa bài hát. Vui lòng thử lại.",
+    "not_found": "Không tìm thấy album"
   }
 }

@@ -171,6 +171,24 @@
     "status_inactive": "Inactive",
     "status_pending": "Pending",
     "status_updated": "Status updated successfully!",
-    "status_update_error": "Failed to update status. Please try again."
+    "status_update_error": "Failed to update status. Please try again.",
+    "songs_count": "songs",
+    "search_in_playlist": "Search in playlist",
+    "date_added": "Date added",
+    "selected": "selected",
+    "album_created_success": "Album created successfully!",
+    "album_create_error": "Failed to create album. Please try again."
+  },
+  "album": {
+    "add_songs": "Add songs",
+    "no_available_songs": "No songs available to add",
+    "remove_from_album": "Remove from album",
+    "remove_song_title": "Remove song from album",
+    "remove_song_confirmation": "Are you sure you want to remove this song from the album?",
+    "song_added_success": "Song added to album!",
+    "song_add_error": "Failed to add song. Please try again.",
+    "song_removed_success": "Song removed from album!",
+    "song_remove_error": "Failed to remove song. Please try again.",
+    "not_found": "Album not found"
   }
 }

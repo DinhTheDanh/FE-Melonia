@@ -75,5 +75,20 @@ const musicApi = {
   updateAlbum(albumId, data) {
     return axiosClient.put(`/Music/album/${albumId}`, data);
   },
+
+  // Lấy chi tiết album (bao gồm các bài hát)
+  getAlbumDetail(albumId, params) {
+    return axiosClient.get(`/Music/album/${albumId}`, { params });
+  },
+
+  // Thêm bài hát vào album
+  addSongToAlbum(albumId, songId) {
+    return axiosClient.post(`/Music/album/${albumId}/add-song/${songId}`);
+  },
+
+  // Xóa bài hát khỏi album (qua Interaction API)
+  removeSongFromAlbum(albumId, songId) {
+    return axiosClient.delete(`/Interaction/album/${albumId}/remove-song/${songId}`);
+  },
 };
 export default musicApi;

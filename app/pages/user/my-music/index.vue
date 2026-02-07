@@ -1,654 +1,599 @@
 <template>
-  <div class="min-h-screen bg-[#121212] text-white p-8">
-    <div class="max-w-7xl mx-auto">
-      <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <h1 class="text-4xl font-bold tracking-tight">
-          {{ $t("song.my_music") }}
-        </h1>
-        <NuxtLink to="/create/song">
-          <UButton
-            icon="i-lucide-plus"
-            :label="$t('song.upload_now')"
-            color="primary"
-            size="lg"
-            class="rounded-full font-bold"
-            :ui="{
-              color: {
-                primary: {
-                  solid: 'bg-[#1DB954] hover:bg-[#1ed760] text-black',
-                },
-              },
-            }"
-          />
-        </NuxtLink>
-      </div>
+  <div class="min-h-screen bg-[#121212] text-white">
+    <!-- Hero Header with Gradient -->
+    <div class="relative">
+      <!-- Gradient Background -->
+      <div
+        class="absolute inset-0 h-80"
+        :style="{
+          background: `linear-gradient(180deg, ${dominantColor}40 0%, ${dominantColor}20 50%, #121212 100%)`,
+        }"
+      />
 
-      <!-- Skeleton Loading State -->
-      <div v-if="isLoading" class="space-y-4">
-        <!-- Skeleton Header Row -->
-        <div
-          class="bg-[#282828]/40 rounded-xl border border-white/10 overflow-hidden"
-        >
-          <!-- Skeleton Table Header -->
-          <div class="bg-[#282828]/80 border-b border-white/10 px-6 py-4">
-            <div class="flex items-center gap-6">
-              <div class="w-8 h-4 bg-neutral-700 rounded animate-pulse"></div>
-              <div class="w-32 h-4 bg-neutral-700 rounded animate-pulse"></div>
-              <div class="w-24 h-4 bg-neutral-700 rounded animate-pulse"></div>
-              <div class="w-20 h-4 bg-neutral-700 rounded animate-pulse"></div>
-              <div class="w-16 h-4 bg-neutral-700 rounded animate-pulse"></div>
-              <div class="w-24 h-4 bg-neutral-700 rounded animate-pulse"></div>
-              <div class="w-20 h-4 bg-neutral-700 rounded animate-pulse"></div>
+      <div class="relative px-8 pt-16 pb-6">
+        <div class="max-w-7xl mx-auto">
+          <!-- Header Content -->
+          <div class="flex items-end gap-6">
+            <!-- Large Playlist Icon -->
+            <div
+              class="w-56 h-56 bg-linear-to-br from-[#282828] to-[#121212] rounded-lg shadow-2xl flex items-center justify-center shrink-0"
+            >
+              <UIcon name="i-lucide-music" class="size-24 text-[#7F7F7F]" />
+            </div>
+
+            <!-- Metadata -->
+            <div class="flex flex-col gap-2 pb-2">
+              <span class="text-xs font-bold uppercase tracking-wider"
+                >Playlist</span
+              >
+              <h1 class="text-6xl font-black tracking-tight">
+                {{ $t("song.my_music") }}
+              </h1>
+              <p class="text-neutral-400 text-sm mt-4">
+                <span class="text-white font-medium">{{ userName }}</span> •
+                {{ songs.length }} {{ $t("song.songs_count") }},
+                {{ totalDuration }}
+              </p>
             </div>
           </div>
 
-          <!-- Skeleton Rows -->
-          <div class="divide-y divide-white/5">
-            <div
-              v-for="i in 8"
-              :key="i"
-              class="px-6 py-4 flex items-center gap-6"
+          <!-- Action Buttons Row -->
+          <div class="flex items-center gap-6 mt-8">
+            <!-- Large Play Button -->
+            <button
+              class="w-14 h-14 bg-purple-500 hover:bg-purple-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer"
+              @click="playAll"
             >
-              <!-- Number -->
+              <UIcon name="i-lucide-play" class="size-7 text-black ml-1" />
+            </button>
+
+            <!-- Shuffle -->
+            <button
+              class="p-2 hover:scale-110 transition-transform cursor-pointer"
+            >
+              <UIcon
+                name="i-lucide-shuffle"
+                class="size-8 text-neutral-400 hover:text-white transition-colors"
+              />
+            </button>
+
+            <!-- Upload Button -->
+            <NuxtLink to="/create/song">
+              <button
+                class="p-2 hover:scale-110 transition-transform cursor-pointer"
+              >
+                <UIcon
+                  name="i-lucide-plus-circle"
+                  class="size-8 text-neutral-400 hover:text-white transition-colors"
+                />
+              </button>
+            </NuxtLink>
+
+            <!-- More Options -->
+            <button
+              class="p-2 hover:scale-110 transition-transform cursor-pointer"
+            >
+              <UIcon
+                name="i-lucide-more-horizontal"
+                class="size-8 text-neutral-400 hover:text-white transition-colors"
+              />
+            </button>
+
+            <!-- Search (Right aligned) -->
+            <div class="ml-auto relative">
               <div
-                class="w-8 h-4 bg-neutral-700/50 rounded animate-pulse"
-              ></div>
-
-              <!-- Song Info with Image -->
-              <div class="flex items-center gap-3 flex-1">
-                <div
-                  class="w-10 h-10 bg-neutral-700 rounded animate-pulse shrink-0"
-                ></div>
-                <div class="space-y-2 flex-1">
-                  <div
-                    class="h-4 bg-neutral-700 rounded animate-pulse"
-                    :style="{ width: `${Math.random() * 30 + 40}%` }"
-                  ></div>
-                  <div
-                    class="w-20 h-3 bg-neutral-700/50 rounded animate-pulse"
-                  ></div>
-                </div>
-              </div>
-
-              <!-- Artist -->
-              <div
-                class="w-28 h-4 bg-neutral-700/50 rounded animate-pulse"
-              ></div>
-
-              <!-- Genre -->
-              <div
-                class="w-20 h-4 bg-neutral-700/50 rounded animate-pulse"
-              ></div>
-
-              <!-- Duration -->
-              <div
-                class="w-12 h-4 bg-neutral-700/50 rounded animate-pulse"
-              ></div>
-
-              <!-- Created Date -->
-              <div
-                class="w-24 h-4 bg-neutral-700/50 rounded animate-pulse"
-              ></div>
-
-              <!-- Actions -->
-              <div class="flex items-center gap-2">
-                <div
-                  class="w-8 h-8 bg-neutral-700/50 rounded-full animate-pulse"
-                ></div>
-                <div
-                  class="w-8 h-8 bg-neutral-700/50 rounded-full animate-pulse"
-                ></div>
+                class="flex items-center transition-all duration-300"
+                :class="isSearchFocused ? 'w-64' : 'w-48'"
+              >
+                <UIcon
+                  name="i-lucide-search"
+                  class="absolute left-3 size-4 text-neutral-400"
+                />
+                <input
+                  v-model="searchInput"
+                  type="text"
+                  :placeholder="$t('song.search_in_playlist')"
+                  class="w-full h-8 bg-[#242424] text-white text-sm pl-9 pr-4 rounded border border-transparent focus:border-white/20 focus:bg-[#2a2a2a] outline-none placeholder:text-neutral-500 transition-all"
+                  @focus="isSearchFocused = true"
+                  @blur="isSearchFocused = false"
+                />
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Empty State -->
-      <div v-else-if="songs.length === 0" class="text-center py-20">
-        <UIcon
-          name="i-lucide-music"
-          class="size-20 mx-auto mb-4 text-neutral-600"
-        />
-        <p class="text-xl text-neutral-400 mb-6">{{ $t("song.no_songs") }}</p>
-        <NuxtLink to="/create/song">
-          <UButton
-            icon="i-lucide-plus"
-            :label="$t('song.upload_now')"
-            color="primary"
-            size="lg"
-            class="rounded-full font-bold"
-            :ui="{
-              color: {
-                primary: {
-                  solid: 'bg-[#1DB954] hover:bg-[#1ed760] text-black',
-                },
-              },
-            }"
-          />
-        </NuxtLink>
-      </div>
-
-      <!-- Songs Table -->
-      <div
-        v-if="!isLoading && songs.length > 0"
-        class="bg-[#282828]/40 rounded-xl border border-white/10 overflow-hidden"
-      >
-        <!-- Search Bar / Selection Header - attached to table -->
-        <Transition name="fade" mode="out-in">
+    <!-- Main Content -->
+    <div class="px-8 pb-8">
+      <div class="max-w-7xl mx-auto">
+        <!-- Loading State -->
+        <div v-if="isLoading" class="space-y-2">
           <div
-            v-if="selectedSongs.length > 0"
-            key="selection"
-            class="bg-[#282828]/80 border-b border-white/10 px-6 h-14 flex items-center gap-4"
+            v-for="i in 10"
+            :key="i"
+            class="flex items-center gap-4 px-4 py-2 rounded-md"
           >
-            <span class="text-sm text-white">
-              {{ $t("song.selected_prefix") }} {{ selectedSongs.length }}
-            </span>
-            <button
-              class="text-sm text-[#1DB954] hover:text-[#1ed760] cursor-pointer transition-colors"
-              @click="selectedSongs = []"
-            >
-              {{ $t("song.deselect_all") }}
-            </button>
-            <UButton
-              icon="i-lucide-trash-2"
-              :label="$t('song.delete')"
-              color="red"
-              variant="outline"
-              size="sm"
-              class="cursor-pointer"
-              @click="openBulkDeleteConfirm"
-            />
-          </div>
-          <!-- Search Bar - shows when no items selected -->
-          <div
-            v-else
-            key="search"
-            class="bg-[#282828]/80 border-b border-white/10 px-6 h-14 flex items-center gap-4"
-          >
-            <div class="relative flex-1 max-w-md">
-              <UIcon
-                name="i-lucide-search"
-                class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-400"
-              />
-              <input
-                v-model="searchInput"
-                type="text"
-                :placeholder="$t('song.search_placeholder')"
-                class="w-full h-9 bg-[#3E3E3E] text-white text-sm pl-9 pr-4 rounded-md border border-transparent focus:border-[#1DB954] focus:outline-none placeholder:text-neutral-400 transition-colors"
-              />
+            <div class="w-4 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
+            <div
+              class="w-10 h-10 bg-neutral-700 rounded animate-pulse shrink-0"
+            ></div>
+            <div class="flex-1 space-y-2">
+              <div
+                class="h-4 bg-neutral-700 rounded animate-pulse"
+                :style="{ width: `${Math.random() * 30 + 30}%` }"
+              ></div>
+              <div
+                class="w-24 h-3 bg-neutral-700/50 rounded animate-pulse"
+              ></div>
             </div>
+            <div class="w-20 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
+            <div class="w-16 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
+            <div class="w-12 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
           </div>
-        </Transition>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <!-- Header -->
-            <thead class="bg-[#282828]/80 border-b border-white/10">
-              <tr
-                class="text-left text-xs uppercase tracking-wider text-neutral-400"
-              >
-                <th class="px-4 py-4 w-12">
-                  <UCheckbox
-                    :model-value="isAllSelected"
-                    :indeterminate="isIndeterminate"
-                    @update:model-value="toggleSelectAll"
-                    :ui="{
-                      base: 'cursor-pointer',
-                      color: 'text-[#1DB954]',
-                    }"
-                  />
-                </th>
-                <th class="px-4 py-4 font-bold w-12">#</th>
-                <th class="px-6 py-4 font-bold">{{ $t("song.song_title") }}</th>
-                <th class="px-6 py-4 font-bold">{{ $t("song.album") }}</th>
-                <th class="px-6 py-4 font-bold">{{ $t("song.artist") }}</th>
-                <th class="px-6 py-4 font-bold">
-                  {{ $t("song.primary_genre") }}
-                </th>
-                <th class="px-6 py-4 font-bold">{{ $t("song.duration") }}</th>
-                <th class="px-6 py-4 font-bold">{{ $t("song.status") }}</th>
-                <th class="px-6 py-4 font-bold">
-                  {{ $t("song.created_date") }}
-                </th>
-              </tr>
-            </thead>
+        </div>
 
-            <!-- Body -->
-            <tbody>
-              <tr
-                v-for="(song, index) in paginatedSongs"
-                :key="song.SongId"
-                class="group relative border-b border-white/5 hover:bg-[#3E3E3E]/30 transition-colors"
+        <!-- Empty State -->
+        <div v-else-if="songs.length === 0" class="text-center py-20">
+          <UIcon
+            name="i-lucide-music"
+            class="size-20 mx-auto mb-4 text-neutral-600"
+          />
+          <p class="text-xl text-neutral-400 mb-6">{{ $t("song.no_songs") }}</p>
+          <NuxtLink to="/create/song">
+            <button
+              class="inline-flex items-center gap-2 bg-white hover:bg-neutral-200 text-black font-bold py-3 px-8 rounded-full transition-colors cursor-pointer"
+            >
+              <UIcon name="i-lucide-plus" class="size-5" />
+              {{ $t("song.upload_now") }}
+            </button>
+          </NuxtLink>
+        </div>
+
+        <!-- Songs List -->
+        <div v-else>
+          <!-- Selection Bar (Fixed when items selected) -->
+          <Transition name="slide-down">
+            <div
+              v-if="selectedSongs.length > 0"
+              class="sticky top-0 z-10 bg-[#1a1a1a] border-b border-white/10 px-4 py-3 mb-4 rounded-lg flex items-center gap-4"
+            >
+              <UCheckbox
+                :model-value="isAllSelected"
+                :indeterminate="isIndeterminate"
+                @update:model-value="toggleSelectAll"
+                :ui="{ base: 'cursor-pointer' }"
+              />
+              <span class="text-sm text-white font-medium">
+                {{ selectedSongs.length }} {{ $t("song.selected") }}
+              </span>
+              <button
+                class="text-sm text-purple-500 hover:text-purple-400 cursor-pointer transition-colors"
+                @click="selectedSongs = []"
               >
-                <!-- Checkbox -->
-                <td class="px-4 py-4 w-12">
+                {{ $t("song.deselect_all") }}
+              </button>
+              <div class="flex items-center gap-2 ml-auto">
+                <button
+                  class="flex items-center gap-2 px-4 py-1.5 text-sm text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                  @click="openBulkDeleteConfirm"
+                >
+                  <UIcon name="i-lucide-trash-2" class="size-4 text-red-400" />
+                  {{ $t("song.delete") }}
+                </button>
+              </div>
+            </div>
+          </Transition>
+
+          <!-- Table Header -->
+          <div
+            class="grid grid-cols-[16px_minmax(200px,4fr)_minmax(120px,2fr)_minmax(120px,1fr)_60px_40px] gap-4 px-4 py-2 border-b border-white/10 text-xs uppercase tracking-wider text-neutral-400 sticky top-0 bg-[#121212] z-5"
+          >
+            <div class="text-center">#</div>
+            <div>{{ $t("song.song_title") }}</div>
+            <div>{{ $t("song.album") }}</div>
+            <div>{{ $t("song.date_added") }}</div>
+            <div class="text-center">
+              <UIcon name="i-lucide-clock" class="size-4" />
+            </div>
+            <div></div>
+          </div>
+
+          <!-- Track Rows -->
+          <div class="mt-2">
+            <div
+              v-for="(song, index) in paginatedSongs"
+              :key="song.SongId"
+              class="group grid grid-cols-[16px_minmax(200px,4fr)_minmax(120px,2fr)_minmax(120px,1fr)_60px_40px] gap-4 px-4 py-2 rounded-md hover:bg-white/10 transition-colors items-center"
+              :class="{ 'bg-white/5': selectedSongs.includes(song.SongId) }"
+            >
+              <!-- # / Play / Checkbox -->
+              <div class="flex items-center justify-center relative">
+                <!-- Checkbox (show on hover or when selected) -->
+                <div
+                  :class="[
+                    'absolute inset-0 flex items-center justify-center transition-opacity',
+                    selectedSongs.includes(song.SongId) ||
+                    selectedSongs.length > 0
+                      ? 'opacity-100'
+                      : 'opacity-0 group-hover:opacity-100',
+                  ]"
+                >
                   <UCheckbox
                     :model-value="selectedSongs.includes(song.SongId)"
                     @update:model-value="toggleSelectSong(song.SongId)"
-                    :ui="{
-                      base: 'cursor-pointer',
-                      color: 'text-[#1DB954]',
-                    }"
+                    @click.stop
+                    :ui="{ base: 'cursor-pointer' }"
                   />
-                </td>
+                </div>
 
-                <!-- Number -->
-                <td class="px-4 py-4 text-neutral-400 w-12">
-                  {{ (currentPage - 1) * itemsPerPage.valueOf() + index + 1 }}
-                </td>
+                <!-- Number (hide when checkbox shown) -->
+                <span
+                  :class="[
+                    'text-sm text-neutral-400 transition-opacity',
+                    selectedSongs.includes(song.SongId) ||
+                    selectedSongs.length > 0
+                      ? 'opacity-0'
+                      : 'group-hover:opacity-0',
+                  ]"
+                >
+                  {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                </span>
 
-                <!-- Song Info -->
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-3">
-                    <img
-                      v-if="song.Thumbnail"
-                      :src="song.Thumbnail"
-                      :alt="song.Title"
-                      class="w-10 h-10 rounded object-cover"
-                    />
-                    <div
-                      v-else
-                      class="w-10 h-10 bg-[#3E3E3E] rounded flex items-center justify-center"
-                    >
-                      <UIcon
-                        name="i-lucide-music"
-                        class="size-5 text-neutral-500"
-                      />
-                    </div>
-                    <div class="min-w-0">
-                      <p class="font-medium truncate text-white">
-                        {{ song.Title }}
-                      </p>
-                      <p class="text-xs text-neutral-500">
-                        {{ formatDate(song.CreatedAt) }}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-
-                <!-- Album -->
-                <td class="px-6 py-4 text-sm text-neutral-300 truncate">
-                  {{ song.AlbumTitle || "-" }}
-                </td>
-
-                <!-- Artist -->
-                <td class="px-6 py-4 text-sm text-neutral-300 truncate">
-                  {{ song.ArtistNames || "-" }}
-                </td>
-
-                <!-- Genre -->
-                <td class="px-6 py-4 text-sm text-neutral-300 truncate">
-                  {{
-                    song.Genres?.map((g) => g.Name || g.GenreName).join(", ") ||
-                    "-"
-                  }}
-                </td>
-
-                <!-- Duration -->
-                <td class="px-6 py-4 text-sm text-neutral-400">
-                  {{ formatDuration(song.Duration) }}
-                </td>
-
-                <!-- Status -->
-                <td class="px-6 py-4">
-                  <select
-                    :value="song.Status || 'active'"
-                    @change="handleStatusChange(song, $event.target.value)"
-                    :class="[
-                      'text-xs font-medium px-2 py-1 rounded-md border cursor-pointer transition-colors focus:outline-none',
-                      getStatusClass(song.Status || 'active'),
-                    ]"
-                  >
-                    <option value="active">
-                      {{ $t("song.status_active") }}
-                    </option>
-                    <option value="inactive">
-                      {{ $t("song.status_inactive") }}
-                    </option>
-                    <option value="pending">
-                      {{ $t("song.status_pending") }}
-                    </option>
-                  </select>
-                </td>
-
-                <!-- Created Date -->
-                <td class="px-6 py-4 text-sm text-neutral-400 relative">
-                  <span class="group-hover:invisible">
-                    {{ formatDate(song.CreatedAt) }}
-                  </span>
-                  <!-- Hover Actions Overlay -->
-                  <div
-                    class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <button
-                      class="p-1.5 hover:scale-110 transition-transform cursor-pointer"
-                      @click="openEditModal(song)"
-                    >
-                      <UIcon
-                        name="i-lucide-pencil"
-                        class="size-4 text-yellow-400 hover:text-yellow-300"
-                      />
-                    </button>
-                    <button
-                      class="p-1.5 hover:scale-110 transition-transform cursor-pointer"
-                      @click="openDeleteConfirm(song)"
-                    >
-                      <UIcon
-                        name="i-lucide-trash-2"
-                        class="size-4 text-red-500 hover:text-red-400"
-                      />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Pagination -->
-        <div
-          v-if="filteredSongs.length > 0"
-          class="flex items-center justify-between px-6 py-3 border-t border-white/10"
-        >
-          <!-- Left: Total records -->
-          <div class="text-sm text-neutral-400">
-            {{ $t("song.total_records") }}: {{ filteredSongs.length }}
-          </div>
-
-          <!-- Right: Per page selector + range + navigation -->
-          <div class="flex items-center gap-4">
-            <!-- Items per page -->
-            <div class="flex items-center gap-2">
-              <span class="text-sm text-neutral-400">{{
-                $t("song.per_page")
-              }}</span>
-              <select
-                v-model="itemsPerPage"
-                class="bg-[#3E3E3E] text-white text-sm px-2 py-1 rounded-md border border-white/10 focus:border-[#1DB954] focus:outline-none cursor-pointer"
-              >
-                <option :value="10">10</option>
-                <option :value="20">20</option>
-                <option :value="50">50</option>
-                <option :value="100">100</option>
-              </select>
-            </div>
-
-            <!-- Range display -->
-            <span class="text-sm text-neutral-400">
-              {{ (currentPage - 1) * itemsPerPage + 1 }} -
-              {{ Math.min(currentPage * itemsPerPage, filteredSongs.length) }}
-              {{ $t("song.of_records") }}
-            </span>
-
-            <!-- Navigation buttons -->
-            <div class="flex items-center gap-1">
-              <button
-                :disabled="currentPage === 1"
-                class="p-1.5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                @click="currentPage--"
-              >
-                <UIcon name="i-lucide-chevron-left" class="size-4" />
-              </button>
-              <button
-                :disabled="currentPage === totalPages || totalPages === 0"
-                class="p-1.5 rounded hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                @click="currentPage++"
-              >
-                <UIcon name="i-lucide-chevron-right" class="size-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Edit Modal -->
-      <Transition name="fade">
-        <div
-          v-if="isEditModalOpen"
-          class="fixed top-0 left-0 right-0 bottom-0 z-[999] w-full flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          @click="closeEditModal"
-        >
-          <div
-            class="bg-[#282828] rounded-xl p-8 max-w-2xl w-full mx-4 border border-white/10 max-h-[90vh] overflow-y-auto"
-            @click.stop
-          >
-            <div class="flex justify-between items-center mb-6">
-              <h2 class="text-2xl font-bold">{{ $t("song.edit_song") }}</h2>
-              <UButton
-                icon="i-lucide-x"
-                color="gray"
-                variant="ghost"
-                @click="closeEditModal"
-              />
-            </div>
-
-            <div class="space-y-6">
-              <!-- Title -->
-              <div>
-                <label class="block text-sm font-bold text-neutral-300 mb-2">
-                  {{ $t("song.song_title") }}
-                </label>
-                <UInput
-                  v-model="editForm.title"
-                  :placeholder="$t('song.song_title_placeholder')"
-                  size="lg"
-                  class="w-full"
-                  :ui="inputSpotifyStyle"
-                />
+                <!-- Play button (show on hover when no selection) -->
+                <button
+                  v-if="selectedSongs.length === 0"
+                  class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-none outline-none bg-transparent"
+                  @click="playSong(song)"
+                >
+                  <UIcon name="i-lucide-play" class="size-4 text-white" />
+                </button>
               </div>
 
-              <!-- Cover Image -->
-              <div>
-                <label class="block text-sm font-bold text-neutral-300 mb-2">
-                  {{ $t("song.cover_image") }}
-                </label>
+              <!-- Title + Artist -->
+              <div class="flex items-center gap-3 min-w-0">
+                <!-- Thumbnail -->
                 <div
-                  class="group relative w-40 h-40 rounded-lg overflow-hidden bg-[#3E3E3E] cursor-pointer"
-                  @click="triggerEditImageInput"
+                  class="relative w-10 h-10 rounded overflow-hidden shrink-0"
                 >
                   <img
-                    v-if="editForm.coverPreview"
-                    :src="editForm.coverPreview"
+                    v-if="song.Thumbnail"
+                    :src="song.Thumbnail"
+                    :alt="song.Title"
                     class="w-full h-full object-cover"
                   />
                   <div
                     v-else
-                    class="w-full h-full flex items-center justify-center text-neutral-500"
+                    class="w-full h-full bg-[#282828] flex items-center justify-center"
                   >
-                    <UIcon name="i-lucide-image" class="size-12" />
+                    <UIcon
+                      name="i-lucide-music"
+                      class="size-5 text-neutral-500"
+                    />
                   </div>
-                  <div
-                    class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                </div>
+
+                <!-- Title & Artist -->
+                <div class="min-w-0 flex-1">
+                  <p class="text-white text-sm font-medium truncate">
+                    {{ song.Title }}
+                  </p>
+                  <p
+                    class="text-neutral-400 text-xs truncate hover:text-white hover:underline cursor-pointer"
                   >
-                    <UIcon name="i-lucide-camera" class="size-8 text-white" />
-                  </div>
-                  <input
-                    ref="editImageInputRef"
-                    type="file"
-                    class="hidden"
-                    accept="image/*"
-                    @change="handleEditImageSelect"
-                  />
+                    {{ song.ArtistNames || "-" }}
+                  </p>
                 </div>
               </div>
 
-              <!-- Genre -->
-              <div>
-                <label class="block text-sm font-bold text-neutral-300 mb-2">
-                  {{ $t("song.primary_genre") }}
-                </label>
-                <USelectMenu
-                  v-model="editForm.genres"
-                  multiple
-                  :items="genreOptions"
-                  :placeholder="$t('song.genre_placeholder')"
-                  size="lg"
-                  :ui="inputSpotifyStyle"
-                />
+              <!-- Album -->
+              <div
+                class="text-neutral-400 text-sm truncate hover:text-white hover:underline cursor-pointer"
+              >
+                {{ song.AlbumTitle || "-" }}
               </div>
 
-              <!-- Lyrics -->
-              <div>
-                <label class="block text-sm font-bold text-neutral-300 mb-2">
-                  {{ $t("song.lyrics") }}
-                </label>
-                <UTextarea
-                  v-model="editForm.lyrics"
-                  :placeholder="$t('song.lyrics_placeholder')"
-                  :rows="4"
-                  class="w-full"
-                  :ui="inputSpotifyStyle"
-                />
+              <!-- Date Added -->
+              <div class="text-neutral-400 text-sm">
+                {{ formatRelativeDate(song.CreatedAt) }}
               </div>
 
-              <!-- Action Buttons -->
-              <div class="flex justify-end gap-4 pt-4 border-t border-white/10">
-                <UButton
-                  :label="$t('song.cancel')"
-                  color="gray"
-                  variant="ghost"
-                  size="lg"
-                  @click="closeEditModal"
-                />
-                <UButton
-                  :label="$t('song.save_changes')"
-                  color="primary"
-                  size="lg"
-                  :loading="isSaving"
-                  class="rounded-full"
-                  :ui="{
-                    color: {
-                      primary: {
-                        solid: 'bg-[#1DB954] hover:bg-[#1ed760] text-black',
-                      },
+              <!-- Duration -->
+              <div class="text-neutral-400 text-sm text-center">
+                {{ formatDuration(song.Duration) }}
+              </div>
+
+              <!-- More button with dropdown -->
+              <div class="flex items-center justify-center">
+                <UDropdownMenu
+                  :items="[
+                    {
+                      label: $t('song.edit'),
+                      icon: 'i-lucide-pencil',
+                      onSelect: () => openEditModal(song),
                     },
-                  }"
-                  @click="handleEditSave"
-                />
+                    {
+                      label: $t('song.delete'),
+                      icon: 'i-lucide-trash-2',
+                      color: 'error',
+                      onSelect: () => openDeleteConfirm(song),
+                    },
+                  ]"
+                >
+                  <button
+                    class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <UIcon
+                      name="i-lucide-more-horizontal"
+                      class="size-5 text-neutral-400 hover:text-white"
+                    />
+                  </button>
+                </UDropdownMenu>
               </div>
             </div>
           </div>
-        </div>
-      </Transition>
 
-      <!-- Delete Confirmation Dialog -->
-      <Transition name="fade">
-        <div
-          v-if="isDeleteConfirmOpen"
-          class="fixed top-0 left-0 right-0 bottom-0 z-[999] w-full flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          @click="isDeleteConfirmOpen = false"
-        >
+          <!-- Pagination -->
           <div
-            class="bg-[#282828] rounded-xl p-8 max-w-md w-full mx-4 border border-white/10"
-            @click.stop
+            v-if="totalPages > 1"
+            class="flex items-center justify-between mt-6 pt-4 border-t border-white/10"
           >
-            <div class="flex items-center gap-4 mb-6">
-              <div
-                class="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center shrink-0"
-              >
-                <UIcon
-                  name="i-lucide-alert-circle"
-                  class="size-6 text-red-500"
-                />
-              </div>
-              <div>
-                <h3 class="text-xl font-bold text-white">
-                  {{ $t("song.confirm_delete") }}
-                </h3>
-                <p class="text-sm text-neutral-400">
-                  {{ $t("song.delete_song_confirmation") }}
-                </p>
-              </div>
+            <div class="text-sm text-neutral-400">
+              {{ filteredSongs.length }} {{ $t("song.songs_count") }}
             </div>
-
-            <div class="flex justify-end gap-4 pt-4 border-t border-white/10">
-              <UButton
-                :label="$t('song.cancel_delete')"
-                color="gray"
-                variant="ghost"
-                size="lg"
-                @click="isDeleteConfirmOpen = false"
-              />
-              <UButton
-                :label="$t('song.confirm')"
-                color="red"
-                size="lg"
-                :loading="isDeleting"
-                class="rounded-full"
-                @click="handleDeleteSong"
-              />
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-neutral-400">{{
+                  $t("song.per_page")
+                }}</span>
+                <select
+                  v-model="itemsPerPage"
+                  class="bg-transparent text-white text-sm px-2 py-1 rounded border border-white/20 focus:border-white/40 outline-none cursor-pointer"
+                >
+                  <option :value="10" class="bg-[#282828]">10</option>
+                  <option :value="20" class="bg-[#282828]">20</option>
+                  <option :value="50" class="bg-[#282828]">50</option>
+                  <option :value="100" class="bg-[#282828]">100</option>
+                </select>
+              </div>
+              <span class="text-sm text-neutral-400">
+                {{ (currentPage - 1) * itemsPerPage + 1 }}-{{
+                  Math.min(currentPage * itemsPerPage, filteredSongs.length)
+                }}
+                {{ $t("song.of") }} {{ filteredSongs.length }}
+              </span>
+              <div class="flex items-center gap-1">
+                <button
+                  :disabled="currentPage === 1"
+                  class="p-2 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  @click="currentPage--"
+                >
+                  <UIcon name="i-lucide-chevron-left" class="size-5" />
+                </button>
+                <button
+                  :disabled="currentPage === totalPages"
+                  class="p-2 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  @click="currentPage++"
+                >
+                  <UIcon name="i-lucide-chevron-right" class="size-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </Transition>
-
-      <!-- Bulk Delete Confirmation Dialog -->
-      <Transition name="fade">
-        <div
-          v-if="isBulkDeleteConfirmOpen"
-          class="fixed top-0 left-0 right-0 bottom-0 z-999 w-full flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          @click="isBulkDeleteConfirmOpen = false"
-        >
-          <div
-            class="bg-[#282828] rounded-xl p-8 max-w-md w-full mx-4 border border-white/10"
-            @click.stop
-          >
-            <div class="flex items-center gap-4 mb-6">
-              <div
-                class="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center shrink-0"
-              >
-                <UIcon
-                  name="i-lucide-alert-circle"
-                  class="size-6 text-red-500"
-                />
-              </div>
-              <div>
-                <h3 class="text-xl font-bold text-white">
-                  {{ $t("song.confirm_delete") }}
-                </h3>
-                <p class="text-sm text-neutral-400">
-                  {{
-                    $t("song.bulk_delete_confirmation", {
-                      count: selectedSongs.length,
-                    })
-                  }}
-                </p>
-              </div>
-            </div>
-
-            <div class="flex justify-end gap-4 pt-4 border-t border-white/10">
-              <UButton
-                :label="$t('song.cancel_delete')"
-                color="gray"
-                variant="ghost"
-                size="lg"
-                @click="isBulkDeleteConfirmOpen = false"
-              />
-              <UButton
-                :label="$t('song.confirm')"
-                color="red"
-                size="lg"
-                :loading="isDeleting"
-                class="rounded-full"
-                @click="handleBulkDelete"
-              />
-            </div>
-          </div>
-        </div>
-      </Transition>
+      </div>
     </div>
+
+    <!-- Edit Modal -->
+    <Transition name="fade">
+      <div
+        v-if="isEditModalOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        @click="closeEditModal"
+      >
+        <div
+          class="bg-[#282828] rounded-lg p-6 max-w-lg w-full mx-4 border border-white/10 max-h-[85vh] overflow-y-auto"
+          @click.stop
+        >
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold">{{ $t("song.edit_song") }}</h2>
+            <button
+              class="p-1 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+              @click="closeEditModal"
+            >
+              <UIcon name="i-lucide-x" class="size-5" />
+            </button>
+          </div>
+
+          <div class="space-y-5">
+            <!-- Title -->
+            <div>
+              <label class="block text-sm font-medium text-neutral-300 mb-2">
+                {{ $t("song.song_title") }}
+              </label>
+              <input
+                v-model="editForm.title"
+                type="text"
+                :placeholder="$t('song.song_title_placeholder')"
+                class="w-full bg-[#3E3E3E] text-white px-4 py-3 rounded-md border border-transparent focus:border-purple-500 outline-none placeholder:text-neutral-500 transition-colors"
+              />
+            </div>
+
+            <!-- Cover Image -->
+            <div>
+              <label class="block text-sm font-medium text-neutral-300 mb-2">
+                {{ $t("song.cover_image") }}
+              </label>
+              <div
+                class="group relative w-32 h-32 rounded-md overflow-hidden bg-[#3E3E3E] cursor-pointer"
+                @click="triggerEditImageInput"
+              >
+                <img
+                  v-if="editForm.coverPreview"
+                  :src="editForm.coverPreview"
+                  class="w-full h-full object-cover"
+                />
+                <div
+                  v-else
+                  class="w-full h-full flex items-center justify-center text-neutral-500"
+                >
+                  <UIcon name="i-lucide-image" class="size-10" />
+                </div>
+                <div
+                  class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                >
+                  <UIcon name="i-lucide-camera" class="size-6 text-white" />
+                </div>
+                <input
+                  ref="editImageInputRef"
+                  type="file"
+                  class="hidden"
+                  accept="image/*"
+                  @change="handleEditImageSelect"
+                />
+              </div>
+            </div>
+
+            <!-- Genre -->
+            <div>
+              <label class="block text-sm font-medium text-neutral-300 mb-2">
+                {{ $t("song.primary_genre") }}
+              </label>
+              <USelectMenu
+                v-model="editForm.genres"
+                multiple
+                :items="genreOptions"
+                :placeholder="$t('song.genre_placeholder')"
+                size="lg"
+                :ui="{
+                  base: 'bg-[#3E3E3E] text-white rounded-md',
+                }"
+              />
+            </div>
+
+            <!-- Lyrics -->
+            <div>
+              <label class="block text-sm font-medium text-neutral-300 mb-2">
+                {{ $t("song.lyrics") }}
+              </label>
+              <textarea
+                v-model="editForm.lyrics"
+                :placeholder="$t('song.lyrics_placeholder')"
+                rows="4"
+                class="w-full bg-[#3E3E3E] text-white px-4 py-3 rounded-md border border-transparent focus:border-purple-500 outline-none placeholder:text-neutral-500 transition-colors resize-none"
+              ></textarea>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex justify-end gap-3 pt-4">
+              <button
+                class="px-6 py-2 text-sm font-medium text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                @click="closeEditModal"
+              >
+                {{ $t("song.cancel") }}
+              </button>
+              <button
+                :disabled="isSaving"
+                class="px-6 py-2 text-sm font-bold bg-purple-500 hover:bg-purple-400 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50"
+                @click="handleEditSave"
+              >
+                <span v-if="isSaving">...</span>
+                <span v-else>{{ $t("song.save_changes") }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Delete Confirmation Modal -->
+    <Transition name="fade">
+      <div
+        v-if="isDeleteConfirmOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        @click="isDeleteConfirmOpen = false"
+      >
+        <div
+          class="bg-[#282828] rounded-lg p-6 max-w-sm w-full mx-4 border border-white/10"
+          @click.stop
+        >
+          <h3 class="text-lg font-bold mb-2">
+            {{ $t("song.confirm_delete") }}
+          </h3>
+          <p class="text-sm text-neutral-400 mb-6">
+            {{ $t("song.delete_song_confirmation") }}
+          </p>
+          <div class="flex justify-end gap-3">
+            <button
+              class="px-4 py-2 text-sm text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+              @click="isDeleteConfirmOpen = false"
+            >
+              {{ $t("song.cancel") }}
+            </button>
+            <button
+              :disabled="isDeleting"
+              class="px-4 py-2 text-sm font-bold bg-red-600 hover:bg-red-500 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50"
+              @click="handleDeleteSong"
+            >
+              {{ $t("song.delete") }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Bulk Delete Confirmation Modal -->
+    <Transition name="fade">
+      <div
+        v-if="isBulkDeleteConfirmOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        @click="isBulkDeleteConfirmOpen = false"
+      >
+        <div
+          class="bg-[#282828] rounded-lg p-6 max-w-sm w-full mx-4 border border-white/10"
+          @click.stop
+        >
+          <h3 class="text-lg font-bold mb-2">
+            {{ $t("song.confirm_delete") }}
+          </h3>
+          <p class="text-sm text-neutral-400 mb-6">
+            {{
+              $t("song.bulk_delete_confirmation", {
+                count: selectedSongs.length,
+              })
+            }}
+          </p>
+          <div class="flex justify-end gap-3">
+            <button
+              class="px-4 py-2 text-sm text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+              @click="isBulkDeleteConfirmOpen = false"
+            >
+              {{ $t("song.cancel") }}
+            </button>
+            <button
+              :disabled="isDeleting"
+              class="px-4 py-2 text-sm font-bold bg-red-600 hover:bg-red-500 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50"
+              @click="handleBulkDelete"
+            >
+              {{ $t("song.delete") }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from "vue";
+import { useDominantColor } from "~/composables/useDominantColor";
 import musicApi from "~/api/musicApi";
 import fileApi from "~/api/fileApi";
 
-definePageMeta({ layout: "auth" });
-
 const { t } = useI18n();
+const toast = useToast();
+
+// State
 const songs = ref([]);
 const isLoading = ref(false);
 const isEditModalOpen = ref(false);
@@ -659,12 +604,18 @@ const isDeleting = ref(false);
 const editImageInputRef = ref(null);
 const availableGenres = ref([]);
 const selectedSongs = ref([]);
+const isSearchFocused = ref(false);
+const userName = ref("You");
+
+// Dominant color for gradient
+const firstSongThumbnail = computed(() => songs.value[0]?.Thumbnail || null);
+const { dominantColor } = useDominantColor(firstSongThumbnail);
 
 // Search & Pagination
 const searchInput = ref("");
 const searchQuery = ref("");
 const currentPage = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = ref(20);
 
 // Debounce search
 let searchTimeout = null;
@@ -676,66 +627,44 @@ watch(searchInput, (newValue) => {
   }, 300);
 });
 
-// Filtered songs based on search query
+// Filtered songs
 const filteredSongs = computed(() => {
-  if (!searchQuery.value.trim()) {
-    return songs.value;
-  }
+  if (!searchQuery.value.trim()) return songs.value;
   const query = searchQuery.value.toLowerCase().trim();
   return songs.value.filter((song) => {
     const title = (song.Title || "").toLowerCase();
     const artist = (song.ArtistNames || "").toLowerCase();
     const album = (song.AlbumTitle || "").toLowerCase();
-    const genres = (song.Genres || [])
-      .map((g) => (g.Name || g.GenreName || "").toLowerCase())
-      .join(" ");
     return (
-      title.includes(query) ||
-      artist.includes(query) ||
-      album.includes(query) ||
-      genres.includes(query)
+      title.includes(query) || artist.includes(query) || album.includes(query)
     );
   });
 });
 
-// Total pages
-const totalPages = computed(() => {
-  return Math.ceil(filteredSongs.value.length / itemsPerPage.value);
+// Total duration
+const totalDuration = computed(() => {
+  const total = songs.value.reduce((acc, s) => acc + (s.Duration || 0), 0);
+  const hours = Math.floor(total / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  if (hours > 0) {
+    return `${hours} hr ${mins} min`;
+  }
+  return `${mins} min`;
 });
 
-// Paginated songs for current page
+// Pagination
+const totalPages = computed(() =>
+  Math.ceil(filteredSongs.value.length / itemsPerPage.value),
+);
+
 const paginatedSongs = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value;
-  const end = start + itemsPerPage.value;
-  return filteredSongs.value.slice(start, end);
+  return filteredSongs.value.slice(start, start + itemsPerPage.value);
 });
 
-// Watch itemsPerPage to reset page
-watch(itemsPerPage, () => {
-  currentPage.value = 1;
-});
+watch(itemsPerPage, () => (currentPage.value = 1));
 
-// Visible page numbers
-const visiblePages = computed(() => {
-  const pages = [];
-  const total = totalPages.value;
-  const current = currentPage.value;
-
-  if (total <= 5) {
-    for (let i = 1; i <= total; i++) pages.push(i);
-  } else {
-    if (current <= 3) {
-      pages.push(1, 2, 3, 4, 5);
-    } else if (current >= total - 2) {
-      pages.push(total - 4, total - 3, total - 2, total - 1, total);
-    } else {
-      pages.push(current - 2, current - 1, current, current + 1, current + 2);
-    }
-  }
-  return pages;
-});
-
-// Computed properties for checkbox selection (based on current page)
+// Selection
 const isAllSelected = computed(() => {
   if (paginatedSongs.value.length === 0) return false;
   return paginatedSongs.value.every((s) =>
@@ -745,31 +674,23 @@ const isAllSelected = computed(() => {
 
 const isIndeterminate = computed(() => {
   const pageIds = paginatedSongs.value.map((s) => s.SongId);
-  const selectedOnPage = pageIds.filter((id) =>
-    selectedSongs.value.includes(id),
-  );
-  return selectedOnPage.length > 0 && selectedOnPage.length < pageIds.length;
+  const selected = pageIds.filter((id) => selectedSongs.value.includes(id));
+  return selected.length > 0 && selected.length < pageIds.length;
 });
 
-// Toggle select all songs on current page
 const toggleSelectAll = (value) => {
   const pageIds = paginatedSongs.value.map((s) => s.SongId);
   if (value) {
-    // Add all page items to selection
     pageIds.forEach((id) => {
-      if (!selectedSongs.value.includes(id)) {
-        selectedSongs.value.push(id);
-      }
+      if (!selectedSongs.value.includes(id)) selectedSongs.value.push(id);
     });
   } else {
-    // Remove all page items from selection
     selectedSongs.value = selectedSongs.value.filter(
       (id) => !pageIds.includes(id),
     );
   }
 };
 
-// Toggle select individual song
 const toggleSelectSong = (songId) => {
   const index = selectedSongs.value.indexOf(songId);
   if (index > -1) {
@@ -778,22 +699,16 @@ const toggleSelectSong = (songId) => {
     selectedSongs.value.push(songId);
   }
 };
-const selectedSongToDelete = ref(null);
 
-// Computed property để format genres cho USelectMenu
-const genreOptions = computed(() => {
-  return availableGenres.value.map((g) => ({
+// Genre options
+const genreOptions = computed(() =>
+  availableGenres.value.map((g) => ({
     label: g.Name || g.GenreName,
     value: g.GenreId || g.Id,
-  }));
-});
+  })),
+);
 
-const inputSpotifyStyle = {
-  base: "bg-[#3E3E3E] text-white ring-0 focus:ring-2 focus:ring-[#1DB954] placeholder:text-neutral-400",
-  rounded: "rounded-md",
-  padding: { lg: "py-3 px-4" },
-};
-
+// Edit form
 const editForm = reactive({
   songId: null,
   title: "",
@@ -803,20 +718,21 @@ const editForm = reactive({
   coverPreview: null,
 });
 
-const toast = useToast();
+const selectedSongToDelete = ref(null);
 
+// Mount
 onMounted(async () => {
   await fetchMySongs();
   await fetchGenres();
 });
 
+// API calls
 const fetchMySongs = async () => {
   isLoading.value = true;
   try {
-    // Tạo hiệu ứng skeleton loading tối thiểu 1.5s
     const [res] = await Promise.all([
       musicApi.getMySongs(),
-      new Promise((resolve) => setTimeout(resolve, 1500)),
+      new Promise((r) => setTimeout(r, 800)),
     ]);
     songs.value = res.Data || res.data || res || [];
   } catch (error) {
@@ -840,11 +756,7 @@ const fetchGenres = async () => {
   }
 };
 
-const formatDate = (date) => {
-  if (!date) return "-";
-  return new Date(date).toLocaleDateString("vi-VN");
-};
-
+// Formatters
 const formatDuration = (seconds) => {
   if (!seconds) return "0:00";
   const mins = Math.floor(seconds / 60);
@@ -852,46 +764,39 @@ const formatDuration = (seconds) => {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
 
-// Status helpers
-const getStatusClass = (status) => {
-  switch (status) {
-    case "active":
-      return "bg-green-500/20 text-green-400 border-green-500/30";
-    case "inactive":
-      return "bg-red-500/20 text-red-400 border-red-500/30";
-    case "pending":
-      return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-    default:
-      return "bg-neutral-500/20 text-neutral-400 border-neutral-500/30";
-  }
+const formatRelativeDate = (date) => {
+  if (!date) return "-";
+  const d = new Date(date);
+  const now = new Date();
+  const diff = now - d;
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-const handleStatusChange = async (song, newStatus) => {
-  try {
-    await musicApi.updateSong(song.SongId, {
-      ...song,
-      Status: newStatus,
-    });
-    // Update local state
-    const index = songs.value.findIndex((s) => s.SongId === song.SongId);
-    if (index > -1) {
-      songs.value[index].Status = newStatus;
-    }
-    toast.add({
-      title: t("song.success_title"),
-      description: t("song.status_updated"),
-      color: "green",
-    });
-  } catch (error) {
-    console.error("Error updating status:", error);
-    toast.add({
-      title: t("song.error_title"),
-      description: t("song.status_update_error"),
-      color: "red",
-    });
-  }
+// Actions
+const playAll = () => {
+  console.log("Play all songs");
 };
 
+const playSong = (song) => {
+  console.log("Play song:", song.Title);
+};
+
+const toggleLike = (song) => {
+  song.isLiked = !song.isLiked;
+};
+
+const openSongMenu = (song) => {
+  console.log("Open menu for:", song.Title);
+};
+
+// Edit Modal
 const openEditModal = (song) => {
   editForm.songId = song.SongId;
   editForm.title = song.Title;
@@ -904,21 +809,21 @@ const openEditModal = (song) => {
 
 const closeEditModal = () => {
   isEditModalOpen.value = false;
-  editForm.songId = null;
-  editForm.title = "";
-  editForm.genres = [];
-  editForm.lyrics = "";
-  editForm.coverFile = null;
-  editForm.coverPreview = null;
+  Object.assign(editForm, {
+    songId: null,
+    title: "",
+    genres: [],
+    lyrics: "",
+    coverFile: null,
+    coverPreview: null,
+  });
 };
 
-const triggerEditImageInput = () => {
-  editImageInputRef.value?.click();
-};
+const triggerEditImageInput = () => editImageInputRef.value?.click();
 
 const handleEditImageSelect = (e) => {
   const file = e.target.files[0];
-  if (file && file.type.startsWith("image/")) {
+  if (file?.type.startsWith("image/")) {
     editForm.coverFile = file;
     editForm.coverPreview = URL.createObjectURL(file);
   }
@@ -962,6 +867,7 @@ const handleEditSave = async () => {
   }
 };
 
+// Delete
 const openDeleteConfirm = (song) => {
   selectedSongToDelete.value = song;
   isDeleteConfirmOpen.value = true;
@@ -994,7 +900,7 @@ const handleDeleteSong = async () => {
   }
 };
 
-// Bulk Delete Functions
+// Bulk Delete
 const openBulkDeleteConfirm = () => {
   isBulkDeleteConfirmOpen.value = true;
 };
@@ -1004,10 +910,7 @@ const handleBulkDelete = async () => {
 
   isDeleting.value = true;
   try {
-    // Xóa từng bài hát đã chọn
-    await Promise.all(
-      selectedSongs.value.map((songId) => musicApi.deleteSong(songId)),
-    );
+    await Promise.all(selectedSongs.value.map((id) => musicApi.deleteSong(id)));
     toast.add({
       title: t("song.success_title"),
       description: t("song.bulk_delete_success", {
@@ -1032,24 +935,22 @@ const handleBulkDelete = async () => {
 </script>
 
 <style scoped>
-/* Shimmer effect cho skeleton */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
-.skeleton-shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.05) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>

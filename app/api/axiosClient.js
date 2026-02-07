@@ -20,7 +20,9 @@ axiosClient.interceptors.request.use(
 
 axiosClient.interceptors.response.use(
   (response) => {
-    return (response.data = response.data?.data ?? response.data);
+    // Return response.data directly, or response.data.data if it exists
+    const data = response.data;
+    return data?.data ?? data;
   },
   async (error) => {
     const originalRequest = error.config;

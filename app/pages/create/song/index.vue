@@ -6,15 +6,6 @@
           <h1 class="text-3xl font-bold tracking-tight text-white">
             {{ $t("song.upload_studio") }}
           </h1>
-          <UButton
-            icon="i-lucide-disc-3"
-            :label="$t('song.create_new_album')"
-            color="white"
-            variant="soft"
-            size="sm"
-            class="rounded-full font-bold hover:scale-105 transition-transform"
-            @click="openCreateAlbumModal"
-          />
         </div>
 
         <UButton
@@ -239,52 +230,6 @@
           </UFormGroup>
 
           <div
-            class="p-5 mt-3 bg-[#282828]/40 rounded-xl border border-dashed border-neutral-700 hover:border-neutral-500 transition-colors"
-          >
-            <div class="flex items-center justify-between mb-3">
-              <label
-                class="text-sm font-bold text-neutral-300 flex items-center gap-2"
-              >
-                <UIcon name="i-lucide-disc" /> {{ $t("song.add_to_album") }}
-              </label>
-              <UButton
-                :label="$t('song.create_new')"
-                size="xs"
-                color="white"
-                variant="soft"
-                icon="i-lucide-plus"
-                @click="openCreateAlbumModal"
-              />
-            </div>
-
-            <USelectMenu
-              v-model="form.selectedAlbum"
-              :items="myAlbums"
-              :placeholder="$t('song.select_album')"
-              label-key="title"
-              value-key="album_id"
-              size="lg"
-              :ui="inputSpotifyStyle"
-              clearable
-              @click="fetchAlbumsIfNeeded"
-            >
-              <template #option="{ option }">
-                <div class="flex items-center gap-2">
-                  <UAvatar
-                    :src="option.thumbnail"
-                    size="2xs"
-                    icon="i-lucide-disc"
-                  />
-                  <span class="truncate">{{ option.title }}</span>
-                </div>
-              </template>
-            </USelectMenu>
-            <p class="text-xs text-neutral-500 mt-2">
-              {{ $t("song.no_album_notice") }}
-            </p>
-          </div>
-
-          <div
             class="pt-8 mt-4 border-t border-white/10 flex items-center justify-end gap-4"
           >
             <div class="mr-auto text-xs text-neutral-500 max-w-xs">
@@ -377,116 +322,6 @@
           </div>
         </div>
       </Transition>
-
-      <!-- ALBUM MODAL -->
-      <Transition name="fade">
-        <div
-          v-if="isOpenCreateAlbum"
-          class="fixed top-0 left-0 right-0 bottom-0 z-999 w-full flex items-center justify-center bg-black/10 backdrop-blur-sm"
-        >
-          <div
-            class="p-6 text-white bg-[#282828] w-[700px] rounded-lg"
-            @click.stop
-          >
-            <div class="flex justify-between items-center mb-6">
-              <h3 class="text-2xl font-bold tracking-tight">
-                {{ $t("song.create_album_modal_title") }}
-              </h3>
-              <UButton
-                icon="i-lucide-x"
-                color="gray"
-                variant="ghost"
-                class="hover:bg-white/10 rounded-full"
-                @click="isOpenCreateAlbum = false"
-              />
-            </div>
-
-            <div class="flex flex-col sm:flex-row gap-6">
-              <div
-                class="group relative w-45 h-45 shrink-0 mx-auto sm:mx-0 shadow-[0_8px_40px_rgba(0,0,0,0.6)]"
-              >
-                <img
-                  v-if="albumCoverPreview"
-                  :src="albumCoverPreview"
-                  class="w-full h-full object-cover rounded shadow-lg"
-                />
-                <div
-                  v-else
-                  class="w-full h-full bg-[#3E3E3E] flex flex-col items-center justify-center rounded shadow-lg gap-2"
-                >
-                  <UIcon
-                    name="i-lucide-disc-2"
-                    class="size-14 text-[#7F7F7F]"
-                  />
-                  <span class="text-xs font-bold text-[#7F7F7F]">{{
-                    $t("song.cover_image")
-                  }}</span>
-                </div>
-                <div
-                  class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer rounded"
-                  @click="triggerAlbumFileInput"
-                >
-                  <UIcon
-                    name="i-lucide-camera"
-                    class="size-8 mb-2 text-white"
-                  />
-                  <span
-                    class="text-[10px] font-bold uppercase tracking-widest"
-                    >{{ $t("song.upload_now") }}</span
-                  >
-                </div>
-                <input
-                  type="file"
-                  ref="albumFileInputRef"
-                  class="hidden"
-                  accept="image/*"
-                  @change="handleAlbumFileSelect"
-                />
-              </div>
-
-              <div class="flex-1 flex flex-col gap-4">
-                <div class="space-y-1">
-                  <label
-                    class="text-[11px] font-bold text-neutral-400 uppercase"
-                    >{{ $t("song.album_title") }}</label
-                  >
-                  <input
-                    v-model="albumForm.title"
-                    type="text"
-                    :placeholder="$t('song.album_title_placeholder')"
-                    class="w-full bg-[#3E3E3E] text-white text-base font-bold px-3 py-3 rounded border-transparent focus:border-transparent focus:ring-1 focus:ring-white/30 placeholder:text-neutral-500 transition-all"
-                  />
-                </div>
-
-                <div class="space-y-1">
-                  <label
-                    class="text-[11px] font-bold text-neutral-400 uppercase"
-                    >{{ $t("song.release_date") }}</label
-                  >
-                  <input
-                    v-model="albumForm.releaseDate"
-                    type="date"
-                    class="w-full bg-[#3E3E3E] text-white text-sm font-medium px-3 py-3 rounded border-transparent focus:border-transparent focus:ring-1 focus:ring-white/30 appearance-none [&::-webkit-calendar-picker-indicator]:invert"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div class="flex justify-end mt-8 pt-4 border-t border-white/10">
-              <UButton
-                :loading="isCreatingAlbum"
-                :disabled="!albumForm.title"
-                color="white"
-                variant="solid"
-                size="lg"
-                :label="$t('song.save_album')"
-                class="font-bold px-8 rounded-full min-w-[120px] flex justify-center hover:scale-105 transition-transform"
-                @click="handleCreateAlbum"
-              />
-            </div>
-          </div>
-        </div>
-      </Transition>
     </div>
   </div>
 </template>
@@ -505,7 +340,6 @@ definePageMeta({ layout: "auth" });
 const currentUser = ref(null);
 const allArtists = ref([]);
 const availableGenres = ref([]);
-const myAlbums = ref([]);
 const isSubmitting = ref(false);
 const currentStep = ref(1);
 const isDragging = ref(false);
@@ -530,18 +364,6 @@ const form = reactive({
   title: "",
   selectedArtists: [],
   selectedGenres: [],
-  selectedAlbum: null,
-});
-
-// State tạo album
-const isOpenCreateAlbum = ref(false);
-const isCreatingAlbum = ref(false);
-const albumFileInputRef = ref(null);
-const albumCoverPreview = ref(null);
-const albumForm = reactive({
-  title: "",
-  releaseDate: new Date().toISOString().split("T")[0],
-  imageFile: null,
 });
 
 // Styles
@@ -592,30 +414,11 @@ const fetchArtists = async (q) => {
   );
 };
 
-const fetchAlbumsIfNeeded = async () => {
-  if (myAlbums.value.length === 0 && currentUser.value) {
-    try {
-      const res = await musicApi.getAlbumsByArtist(currentUser.value.user_id);
-      myAlbums.value = res.data || res;
-    } catch (e) {
-      console.error("Lỗi Album:", e);
-    }
-  }
-};
-
-const refreshMyAlbums = async (userId) => {
-  try {
-    const res = await musicApi.getAlbumsByArtist(userId);
-    myAlbums.value = res.data || res;
-  } catch (e) {
-    console.error("Lỗi Album:", e);
-  }
-};
 const processAudio = (file) => {
   if (!file.type.startsWith("audio/")) {
     toast.add({
-      title: $t('song.error_title'),
-      description: $t('song.select_audio_error'),
+      title: $t("song.error_title"),
+      description: $t("song.select_audio_error"),
       color: "red",
     });
     return;
@@ -745,11 +548,9 @@ const handleSubmit = async () => {
       FileHash: fileHash,
       ArtistIds: form.selectedArtists.map((u) => u.UserId || u.user_id),
       GenreIds: form.selectedGenres,
-      AlbumId: form.selectedAlbum,
       Lyrics: "",
     };
 
-    console.log("Creating song with payload:", createPayload);
     await musicApi.createSong(createPayload);
 
     uploadPercent.value = 100;
@@ -787,7 +588,6 @@ const resetForm = () => {
   form.title = "";
   form.duration = 0;
   form.selectedGenres = [];
-  form.selectedAlbum = null;
   form.selectedArtists = currentUser.value ? [currentUser.value] : [];
 };
 
@@ -799,67 +599,6 @@ const isFormValid = computed(() => {
     form.selectedGenres.length > 0
   );
 });
-
-// --- TẠO ALBUM ---
-const openCreateAlbumModal = () => {
-  albumForm.title = "";
-  albumForm.releaseDate = new Date().toISOString().split("T")[0];
-  albumForm.imageFile = null;
-  albumCoverPreview.value = null;
-  isOpenCreateAlbum.value = true;
-};
-
-const triggerAlbumFileInput = () => albumFileInputRef.value.click();
-
-const handleAlbumFileSelect = (e) => {
-  const file = e.target.files[0];
-  if (file && file.type.startsWith("image/")) {
-    albumForm.imageFile = file;
-    albumCoverPreview.value = URL.createObjectURL(file);
-  }
-};
-
-const handleCreateAlbum = async () => {
-  isCreatingAlbum.value = true;
-  try {
-    let thumbnailUrl = null;
-    if (albumForm.imageFile) {
-      const fd = new FormData();
-      fd.append("file", albumForm.imageFile);
-      const res = await fileApi.uploadImage(fd);
-      thumbnailUrl = res.Url;
-    }
-
-    const payload = {
-      title: albumForm.title,
-      thumbnail: thumbnailUrl,
-      release_date: albumForm.releaseDate,
-    };
-
-    const res = await musicApi.createAlbum(payload);
-
-    if (currentUser.value) await refreshMyAlbums(currentUser.value.user_id);
-
-    const newAlbumId = res.AlbumId || res.album_id;
-    if (newAlbumId) form.selectedAlbum = newAlbumId;
-
-    toast.add({
-      title: $t('song.success_title'),
-      description: $t('song.success_title'),
-      color: "green",
-    });
-    isOpenCreateAlbum.value = false;
-  } catch (e) {
-    console.error(e);
-    toast.add({
-      title: $t('song.error_title'),
-      description: "Không thể tạo album",
-      color: "red",
-    });
-  } finally {
-    isCreatingAlbum.value = false;
-  }
-};
 
 const formatDuration = (s) => {
   if (!s) return "0:00";

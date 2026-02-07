@@ -1,67 +1,53 @@
 import { ref, watch } from "vue";
 
 export function useDominantColor(imageUrl) {
-  const dominantColor = ref("#1DB954");
+  const dominantColor = ref("#a855f7");
   const isLoading = ref(false);
 
   const extractColor = async (url) => {
     if (!url) {
-      dominantColor.value = "#1DB954";
+      dominantColor.value = "#a855f7";
+      return;
+    }
+
+    // Only run on client side
+    if (typeof window === "undefined") {
       return;
     }
 
     isLoading.value = true;
 
     try {
+      // Dynamic import ColorThief only on client
+      const ColorThief = (await import("colorthief")).default;
+      const colorThief = new ColorThief();
+
       const img = new Image();
       img.crossOrigin = "Anonymous";
+
+      // For Cloudinary images, ensure CORS
+      let processedUrl = url;
+      if (url.includes("cloudinary.com") && !url.includes("f_auto")) {
+        processedUrl = url.replace("/upload/", "/upload/f_auto,q_auto/");
+      }
 
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
-        img.src = url;
+        img.src = processedUrl;
       });
 
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+      // Use ColorThief to get dominant color
+      const color = colorThief.getColor(img);
 
-      // Sample size for performance
-      const sampleSize = 10;
-      canvas.width = sampleSize;
-      canvas.height = sampleSize;
-
-      ctx.drawImage(img, 0, 0, sampleSize, sampleSize);
-
-      const imageData = ctx.getImageData(0, 0, sampleSize, sampleSize);
-      const data = imageData.data;
-
-      let r = 0,
-        g = 0,
-        b = 0,
-        count = 0;
-
-      for (let i = 0; i < data.length; i += 4) {
-        // Skip very dark or very light pixels
-        const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
-        if (brightness > 30 && brightness < 220) {
-          r += data[i];
-          g += data[i + 1];
-          b += data[i + 2];
-          count++;
-        }
-      }
-
-      if (count > 0) {
-        r = Math.round(r / count);
-        g = Math.round(g / count);
-        b = Math.round(b / count);
-        dominantColor.value = `rgb(${r}, ${g}, ${b})`;
+      if (color) {
+        dominantColor.value = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
       } else {
-        dominantColor.value = "#1DB954";
+        dominantColor.value = "#a855f7";
       }
     } catch (error) {
       console.error("Error extracting color:", error);
-      dominantColor.value = "#1DB954";
+      dominantColor.value = "#a855f7";
     } finally {
       isLoading.value = false;
     }
