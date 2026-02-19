@@ -44,7 +44,7 @@
               class="w-14 h-14 bg-purple-500 hover:bg-purple-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer"
               @click="playAll"
             >
-              <UIcon name="i-lucide-play" class="size-7 text-black ml-1" />
+              <UIcon name="i-fa6-solid-play" class="size-6 text-black ml-0.5" />
             </button>
 
             <!-- Shuffle -->
@@ -246,7 +246,7 @@
                   class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-none outline-none bg-transparent"
                   @click="playSong(song)"
                 >
-                  <UIcon name="i-lucide-play" class="size-4 text-white" />
+                  <UIcon name="i-fa6-solid-play" class="size-4 text-white" />
                 </button>
               </div>
 
@@ -589,9 +589,11 @@ import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useDominantColor } from "~/composables/useDominantColor";
 import musicApi from "~/api/musicApi";
 import fileApi from "~/api/fileApi";
+import { usePlayerStore } from "~/stores/usePlayerStore";
 
 const { t } = useI18n();
 const toast = useToast();
+const playerStore = usePlayerStore();
 
 // State
 const songs = ref([]);
@@ -781,11 +783,37 @@ const formatRelativeDate = (date) => {
 
 // Actions
 const playAll = () => {
-  console.log("Play all songs");
+  if (filteredSongs.value.length === 0) return;
+  const queue = filteredSongs.value.map((song) => ({
+    Id: song.SongId || song.Id || song.songId,
+    Title: song.Title,
+    ArtistNames: song.ArtistNames || "Unknown Artist",
+    Thumbnail: song.Thumbnail,
+    FileUrl: song.FileUrl,
+    Duration: song.Duration,
+  }));
+  playerStore.playTrack(queue[0], queue, 0);
 };
 
 const playSong = (song) => {
-  console.log("Play song:", song.Title);
+  const index = filteredSongs.value.findIndex(
+    (s) =>
+      (s.SongId || s.Id || s.songId) ===
+      (song.SongId || song.Id || song.songId),
+  );
+  const queue = filteredSongs.value.map((s) => ({
+    Id: s.SongId || s.Id || s.songId,
+    Title: s.Title,
+    ArtistNames: s.ArtistNames || "Unknown Artist",
+    Thumbnail: s.Thumbnail,
+    FileUrl: s.FileUrl,
+    Duration: s.Duration,
+  }));
+  playerStore.playTrack(
+    queue[index >= 0 ? index : 0],
+    queue,
+    index >= 0 ? index : 0,
+  );
 };
 
 const toggleLike = (song) => {

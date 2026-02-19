@@ -2,18 +2,18 @@ import axiosClient from "./axiosClient";
 
 const musicApi = {
   // Lấy bài hát
-  getSongs(data) {
-    return axiosClient.get("/Music/songs", data);
+  getSongs(params) {
+    return axiosClient.get("/Music/songs", { params });
   },
 
   // Lấy genres
-  getGenres(data) {
-    return axiosClient.get("/Music/genres", data);
+  getGenres() {
+    return axiosClient.get("/Music/genres");
   },
 
   // Lấy albums
-  getAlbums(data) {
-    return axiosClient.get("/Music/albums", data);
+  getAlbums(params) {
+    return axiosClient.get("/Music/albums", { params });
   },
 
   // Tạo bài hát
@@ -32,23 +32,23 @@ const musicApi = {
   },
 
   // Lấy bài hát của user hiện tại
-  getMySongs(data) {
-    return axiosClient.get("/Music/my-songs", data);
+  getMySongs(params) {
+    return axiosClient.get("/Music/my-songs", { params });
   },
 
   // Lấy albums của user hiện tại
-  getMyAlbums(data) {
-    return axiosClient.get("/Music/my-albums", data);
+  getMyAlbums(params) {
+    return axiosClient.get("/Music/my-albums", { params });
   },
 
   // Lấy playlists của user hiện tại
-  getMyPlaylists(data) {
-    return axiosClient.get("/Music/my-playlists", data);
+  getMyPlaylists(params) {
+    return axiosClient.get("/Music/my-playlists", { params });
   },
 
   // Lấy danh sách playlists (public)
-  getPlaylists(data) {
-    return axiosClient.get("/Music/playlists", data);
+  getPlaylists(params) {
+    return axiosClient.get("/Music/playlists", { params });
   },
 
   // Tạo genre
@@ -88,7 +88,9 @@ const musicApi = {
 
   // Xóa bài hát khỏi album (qua Interaction API)
   removeSongFromAlbum(albumId, songId) {
-    return axiosClient.delete(`/Interaction/album/${albumId}/remove-song/${songId}`);
+    return axiosClient.delete(
+      `/Interaction/album/${albumId}/remove-song/${songId}`,
+    );
   },
 };
 export default musicApi;

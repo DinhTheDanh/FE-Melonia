@@ -14,6 +14,7 @@
       "continue": "Continue",
       "divider_or": "or",
       "continue_google": "Continue with Google",
+      "title_heading": "Log in to Melonia",
       "no_account": "Don't have an account?",
       "have_account": "Do you already have an account?",
       "signup": "Sign up",
@@ -44,7 +45,8 @@
       "terms_title": "Terms & Conditions",
       "marketing_opt_out": "I do not want to receive marketing messages from Melonia",
       "share_data_opt_in": "Share my registration data for marketing purposes.",
-      "terms_text": "I agree to the Melonia Terms and Conditions of Use."
+      "terms_text": "I agree to the Melonia Terms and Conditions of Use.",
+      "continue_google": "Sign up with Google"
     },
     "errors": {
       "required": "Field is required",
@@ -59,7 +61,12 @@
     "settings": "Settings"
   },
   "sidebar": {
-    "library": "Library"
+    "library": "Library",
+    "liked_songs": "Liked Songs",
+    "playlist_label": "Playlist",
+    "songs_label": "songs",
+    "create_playlist": "Create playlist",
+    "playlist_created": "New playlist created"
   },
   "notify": {
     "success": "Success",
@@ -190,5 +197,63 @@
     "song_removed_success": "Song removed from album!",
     "song_remove_error": "Failed to remove song. Please try again.",
     "not_found": "Album not found"
+  },
+  "home": {
+    "good_morning": "Good morning",
+    "good_afternoon": "Good afternoon",
+    "good_evening": "Good evening",
+    "recommended_songs": "Made for you",
+    "recommended_albums": "Recommended albums",
+    "featured_artists": "Popular artists",
+    "popular_songs": "Popular songs",
+    "popular_albums": "Popular albums",
+    "recently_played": "Recently played",
+    "show_all": "Show all",
+    "unknown_artist": "Unknown artist",
+    "artist_label": "Artist",
+    "empty_title": "Start listening",
+    "empty_description": "Search for your favorite songs to get started.",
+    "no_artists": "No artists found"
+  },
+  "player": {
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "previous": "Previous",
+    "shuffle_on": "Disable shuffle",
+    "shuffle_off": "Enable shuffle",
+    "repeat_off": "Enable repeat",
+    "repeat_all": "Enable repeat one",
+    "repeat_one": "Disable repeat",
+    "like": "Save to Your Library",
+    "added_to_library": "Added to Your Library",
+    "queue": "Queue",
+    "devices": "Connect to a device",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "fullscreen": "Full screen",
+    "expand": "Expand"
+  },
+  "liked_songs": {
+    "title": "Liked Songs",
+    "playlist_label": "Playlist",
+    "songs_count": "songs",
+    "col_title": "Title",
+    "col_album": "Album",
+    "empty_title": "Songs you like will appear here",
+    "empty_description": "Save songs by tapping the + icon.",
+    "load_more": "Show more"
+  },
+  "playlist": {
+    "add_to_playlist": "Add to playlist",
+    "search_playlist": "Find a playlist",
+    "create_new": "New playlist",
+    "my_playlist": "My Playlist",
+    "playlist_label": "Playlist",
+    "no_playlists": "No playlists yet",
+    "song_added": "Added to {playlist}",
+    "add_error": "Could not add to playlist",
+    "created_and_added": "Playlist created and song added",
+    "create_error": "Could not create playlist"
   }
 }

@@ -11,15 +11,16 @@
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
+    "@iconify-json/fa6-solid": "^1.2.4",
     "@iconify-json/lucide": "^1.2.82",
     "@iconify-json/simple-icons": "^1.2.63",
     "@nuxt/ui": "^4.3.0",
     "@nuxtjs/i18n": "^10.2.1",
     "@pinia/nuxt": "^0.11.3",
     "axios": "^1.13.2",
-    "colorthief": "^2.6.0",
     "js-cookie": "^3.0.5",
     "nuxt": "^4.2.2",
+    "pinia-plugin-persistedstate": "^4.7.1",
     "sass": "^1.97.1",
     "spark-md5": "^3.0.2",
     "vue3-google-login": "^2.0.34",

@@ -46,15 +46,19 @@
         </div>
       </div>
       <div class="flex items-center gap-4">
-        <UIcon name="i-lucide-bell" class="size-5" />
+        <UIcon
+          name="i-lucide-bell"
+          class="size-5 cursor-pointer hover:text-white/80"
+        />
         <UDropdownMenu
           :arrow="true"
           :trigger="'click'"
           :placement="'bottom-end'"
-          :items="items"
+          :items="dropdownItems"
           :ui="{
-            content: 'w-60',
-            item: 'px-4 my-1 py-2 hover:bg-neutral-700 rounded-md ',
+            content: 'w-52 bg-[#282828] border-none shadow-xl p-1',
+            item: 'flex items-center gap-2 px-3 py-2.5 text-sm text-gray-200 hover:bg-white/10 hover:text-white rounded-sm cursor-pointer transition-colors',
+            itemLeadingIcon: 'size-4 text-gray-400 shrink-0',
           }"
         >
           <UTooltip
@@ -66,7 +70,7 @@
               :src="data?.Avatar"
               :alt="data?.FullName"
               size="md"
-              class="cursor-pointer"
+              class="cursor-pointer ring-2 ring-transparent hover:ring-white/20 transition-all"
             />
           </UTooltip>
         </UDropdownMenu>
@@ -80,7 +84,7 @@
         v-model:collapsed="collapsed"
         :min-size="18"
         :max-size="25"
-        :collapsed-size="0"
+        :collapsed-size="5"
         class="group mx-2 border-none group"
       >
         <template #header>
@@ -105,19 +109,29 @@
               </div>
 
               <span
-                :class="collapsed ? 'hidden' : ''"
+                v-if="!collapsed"
                 class="text-md font-semibold transition-all"
               >
                 {{ t("sidebar.library") }}
               </span>
             </div>
 
-            <div
-              :class="collapsed ? 'hidden' : ''"
-              class="p-1.5 bg-[#1F1F1F] rounded-full flex items-center justify-center hover:bg-neutral-700 cursor-pointer"
+            <UTooltip
+              :text="t('sidebar.create_playlist')"
+              arrow
+              :ui="{ content: 'bg-[#282828]' }"
             >
-              <UIcon name="i-lucide-plus" class="size-5 text-zinc-400" />
-            </div>
+              <div
+                class="p-1.5 bg-[#1F1F1F] rounded-full flex items-center justify-center hover:bg-neutral-700 cursor-pointer"
+                :class="collapsed ? 'mx-auto mt-1' : ''"
+                @click="handleCreatePlaylist"
+              >
+                <UIcon
+                  name="i-lucide-plus"
+                  class="size-5 text-zinc-400 hover:text-white"
+                />
+              </div>
+            </UTooltip>
           </div>
         </template>
 
@@ -129,72 +143,249 @@
             @dblclick="onDoubleClick"
           />
         </template>
+
+        <!-- Sidebar Content -->
+        <div class="flex-1 overflow-y-auto px-2 pb-4">
+          <!-- COLLAPSED STATE: Show icons only -->
+          <template v-if="collapsed">
+            <!-- Liked Songs Icon (collapsed) -->
+            <UTooltip
+              v-if="likedSongsStore.totalCount > 0"
+              :text="t('sidebar.liked_songs')"
+              arrow
+              :ui="{ content: 'bg-[#282828]' }"
+              :side="'right'"
+            >
+              <NuxtLink
+                to="/user/liked-songs"
+                class="flex items-center justify-center py-2 rounded-md hover:bg-white/10 transition-colors cursor-pointer mt-2"
+              >
+                <div
+                  class="w-12 h-12 rounded-md flex items-center justify-center shrink-0"
+                  style="background: linear-gradient(135deg, #450af5, #c4efd9)"
+                >
+                  <UIcon name="i-lucide-heart" class="size-5 text-white" />
+                </div>
+              </NuxtLink>
+            </UTooltip>
+
+            <!-- Playlist Icons (collapsed) -->
+            <UTooltip
+              v-for="playlist in userPlaylists"
+              :key="playlist.PlaylistId || playlist.Id"
+              :text="playlist.Title || playlist.Name"
+              arrow
+              :ui="{ content: 'bg-[#282828]' }"
+              :side="'right'"
+            >
+              <NuxtLink
+                :to="`/user/my-albums/${playlist.PlaylistId || playlist.Id}`"
+                class="flex items-center justify-center py-2 rounded-md hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <div
+                  class="w-12 h-12 bg-[#282828] rounded-md flex items-center justify-center shrink-0 overflow-hidden"
+                >
+                  <img
+                    v-if="playlist.Thumbnail"
+                    :src="playlist.Thumbnail"
+                    :alt="playlist.Title"
+                    class="w-full h-full object-cover"
+                  />
+                  <UIcon
+                    v-else
+                    name="i-lucide-music"
+                    class="size-5 text-neutral-400"
+                  />
+                </div>
+              </NuxtLink>
+            </UTooltip>
+          </template>
+
+          <!-- EXPANDED STATE: Full entries -->
+          <template v-else>
+            <!-- Liked Songs Entry -->
+            <NuxtLink
+              v-if="likedSongsStore.totalCount > 0"
+              to="/user/liked-songs"
+              class="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-white/10 transition-colors cursor-pointer group mt-2"
+            >
+              <div
+                class="w-12 h-12 rounded-md flex items-center justify-center shrink-0"
+                style="background: linear-gradient(135deg, #450af5, #c4efd9)"
+              >
+                <UIcon name="i-lucide-heart" class="size-5 text-white" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-white truncate">
+                  {{ t("sidebar.liked_songs") }}
+                </p>
+                <p class="text-xs text-neutral-400 flex items-center gap-1">
+                  <UIcon name="i-lucide-pin" class="size-3" />
+                  {{ t("sidebar.playlist_label") }} ·
+                  {{ likedSongsStore.totalCount }}
+                  {{ t("sidebar.songs_label") }}
+                </p>
+              </div>
+            </NuxtLink>
+
+            <!-- User Playlists -->
+            <NuxtLink
+              v-for="playlist in userPlaylists"
+              :key="playlist.PlaylistId || playlist.Id"
+              :to="`/user/my-albums/${playlist.PlaylistId || playlist.Id}`"
+              class="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <div
+                class="w-12 h-12 bg-[#282828] rounded-md flex items-center justify-center shrink-0 overflow-hidden"
+              >
+                <img
+                  v-if="playlist.Thumbnail"
+                  :src="playlist.Thumbnail"
+                  :alt="playlist.Title"
+                  class="w-full h-full object-cover"
+                />
+                <UIcon
+                  v-else
+                  name="i-lucide-music"
+                  class="size-5 text-neutral-400"
+                />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium text-white truncate">
+                  {{ playlist.Title || playlist.Name }}
+                </p>
+                <p class="text-xs text-neutral-400">
+                  {{ t("sidebar.playlist_label") }}
+                </p>
+              </div>
+            </NuxtLink>
+          </template>
+        </div>
       </UDashboardSidebar>
 
       <div class="flex-1 overflow-y-auto bg-black px-4 pb-28">
         <slot />
       </div>
     </UDashboardGroup>
-  </div>
 
-  <div
-    class="fixed bottom-0 w-full h-24 bg-black z-50 flex items-center px-6"
-  ></div>
+    <!-- Music Player Footer -->
+    <MusicPlayer />
+  </div>
 </template>
 
 <script setup>
 import userApi from "~/api/userApi";
-import { ref, onMounted } from "vue";
+import musicApi from "~/api/musicApi";
+import interactionApi from "~/api/interactionApi";
+import { useLikedSongsStore } from "~/stores/useLikedSongsStore";
+import { ref, onMounted, computed } from "vue";
 
 const route = useRoute();
 const data = ref(null);
 const toast = useToast();
 const { t } = useI18n();
+const { logout, user } = useAuth();
+const likedSongsStore = useLikedSongsStore();
+
+// Sidebar playlists
+const userPlaylists = ref([]);
 
 // Lấy độ rộng của sidebar trong storage
 const { width } = useSidebarState();
 
-// Dữ liệu của dropdown user
-const items = ref([
-  {
-    label: t("header.profile"),
-    to: "/user/profile",
-  },
-  {
-    label: t("song.my_music"),
-    to: "/user/my-music",
-    icon: "i-lucide-music",
-  },
-  {
-    label: t("song.my_albums"),
-    to: "/user/my-albums",
-    icon: "i-lucide-disc",
-  },
-  {
-    label: t("song.my_playlists"),
-    to: "/user/my-playlists",
-    icon: "i-lucide-list-music",
-  },
-  {
-    label: "-",
-  },
-  {
-    label: t("header.create_song"),
-    to: "/create/song",
-  },
-  {
-    label: t("header.settings"),
-    to: "/user/settings",
-  },
-  {
-    label: t("header.logout"),
-    action: () => {
-      toast.success(t("notify.logout_success"));
-      navigateTo("/");
+// Check if user has artist/admin role
+const isArtistOrAdmin = computed(() => {
+  const role = user.value?.role;
+  return role && role !== "User";
+});
+
+// Handle logout
+const handleLogout = async () => {
+  toast.add({
+    title: t("notify.success"),
+    description: t("notify.logout_success"),
+    color: "green",
+  });
+  await logout();
+};
+
+// Dữ liệu của dropdown user (computed để reactive với role)
+const dropdownItems = computed(() => {
+  const baseItems = [
+    {
+      label: t("header.profile"),
+      to: "/user/profile",
+      icon: "i-lucide-user",
     },
-  },
-]);
+    {
+      label: t("song.my_music"),
+      to: "/user/my-music",
+      icon: "i-lucide-music",
+    },
+  ];
+
+  // Only show these for artists/admins
+  if (isArtistOrAdmin.value) {
+    baseItems.push(
+      {
+        label: t("song.my_albums"),
+        to: "/user/my-albums",
+        icon: "i-lucide-disc",
+      },
+      {
+        label: t("header.create_song"),
+        to: "/create/song",
+        icon: "i-lucide-plus-circle",
+      },
+    );
+  }
+
+  // Separator and common items
+  baseItems.push(
+    {
+      type: "separator",
+    },
+    {
+      label: t("header.settings"),
+      to: "/user/settings",
+      icon: "i-lucide-settings",
+    },
+    {
+      type: "separator",
+    },
+    {
+      label: t("header.logout"),
+      icon: "i-lucide-log-out",
+      onSelect: handleLogout,
+    },
+  );
+
+  return baseItems;
+});
 const collapsed = ref(false); // trạng thái thu gọn sidebar
+
+// Handle create new playlist
+const handleCreatePlaylist = async () => {
+  try {
+    const playlistCount = userPlaylists.value.length + 1;
+    const name = `${t("playlist.my_playlist")} #${playlistCount}`;
+    const res = await interactionApi.createPlaylist({ name, description: "" });
+    toast.add({
+      title: t("notify.success"),
+      description: t("sidebar.playlist_created"),
+      color: "green",
+    });
+    // Refresh playlists
+    await fetchUserPlaylists();
+  } catch (error) {
+    console.error("Error creating playlist:", error);
+    toast.add({
+      title: t("notify.error"),
+      description: t("playlist.create_error"),
+      color: "red",
+    });
+  }
+};
 
 // Lấy dữ liệu user
 const fetchUserData = async () => {
@@ -208,5 +399,19 @@ const fetchUserData = async () => {
 
 onMounted(() => {
   fetchUserData();
+  fetchUserPlaylists();
+  // Load liked songs count for sidebar
+  if (!likedSongsStore.isLoaded) {
+    likedSongsStore.fetchLikedSongs();
+  }
 });
+
+const fetchUserPlaylists = async () => {
+  try {
+    const res = await musicApi.getMyPlaylists({ pageIndex: 1, pageSize: 50 });
+    userPlaylists.value = res.Data || res || [];
+  } catch (error) {
+    console.error("Error fetching playlists:", error);
+  }
+};
 </script>

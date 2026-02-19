@@ -14,6 +14,7 @@
       "continue": "Tiếp tục",
       "divider_or": "hoặc",
       "continue_google": "Tiếp tục bằng Google",
+      "title_heading": "Đăng nhập vào Melonia",
       "no_account": "Bạn chưa có tài khoản?",
       "have_account": "Bạn đã có tài khoản?",
       "signup": "Đăng ký",
@@ -44,7 +45,8 @@
       "terms_title": "Điều khoản & Điều kiện",
       "marketing_opt_out": "Tôi không muốn nhận tin nhắn tiếp thị từ Melonia",
       "share_data_opt_in": "Chia sẻ dữ liệu đăng ký vì mục đích tiếp thị.",
-      "terms_text": "Tôi đồng ý với Điều khoản và điều kiện sử dụng của Melonia."
+      "terms_text": "Tôi đồng ý với Điều khoản và điều kiện sử dụng của Melonia.",
+      "continue_google": "Đăng ký bằng Google"
     },
     "errors": {
       "required": "Vui lòng nhập thông tin",
@@ -59,7 +61,12 @@
     "settings": "Cài đặt"
   },
   "sidebar": {
-    "library": "Thư viện"
+    "library": "Thư viện",
+    "liked_songs": "Bài hát đã thích",
+    "playlist_label": "Danh sách phát",
+    "songs_label": "bài hát",
+    "create_playlist": "Tạo danh sách phát",
+    "playlist_created": "Đã tạo danh sách phát mới"
   },
   "notify": {
     "success": "Thành công",
@@ -190,5 +197,63 @@
     "song_removed_success": "Đã xóa bài hát khỏi album!",
     "song_remove_error": "Không thể xóa bài hát. Vui lòng thử lại.",
     "not_found": "Không tìm thấy album"
+  },
+  "home": {
+    "good_morning": "Chào buổi sáng",
+    "good_afternoon": "Chào buổi chiều",
+    "good_evening": "Chào buổi tối",
+    "recommended_songs": "Dành cho bạn",
+    "recommended_albums": "Album đề xuất",
+    "featured_artists": "Nghệ sĩ nổi bật",
+    "popular_songs": "Bài hát phổ biến",
+    "popular_albums": "Album phổ biến",
+    "recently_played": "Nghe gần đây",
+    "show_all": "Hiển thị tất cả",
+    "unknown_artist": "Nghệ sĩ không xác định",
+    "artist_label": "Nghệ sĩ",
+    "empty_title": "Bắt đầu nghe nhạc",
+    "empty_description": "Tìm kiếm bài hát yêu thích của bạn để bắt đầu.",
+    "no_artists": "Không có nghệ sĩ nào"
+  },
+  "player": {
+    "play": "Phát",
+    "pause": "Dừng",
+    "next": "Bài tiếp theo",
+    "previous": "Bài trước",
+    "shuffle_on": "Tắt phát ngẫu nhiên",
+    "shuffle_off": "Bật phát ngẫu nhiên",
+    "repeat_off": "Bật lặp lại",
+    "repeat_all": "Lặp lại một bài",
+    "repeat_one": "Tắt lặp lại",
+    "like": "Lưu vào Thư viện",
+    "added_to_library": "Đã thêm vào Thư viện",
+    "queue": "Danh sách chờ",
+    "devices": "Kết nối thiết bị",
+    "mute": "Tắt tiếng",
+    "unmute": "Bật tiếng",
+    "fullscreen": "Toàn màn hình",
+    "expand": "Mở rộng"
+  },
+  "liked_songs": {
+    "title": "Bài hát đã thích",
+    "playlist_label": "Danh sách phát",
+    "songs_count": "bài hát",
+    "col_title": "Tiêu đề",
+    "col_album": "Album",
+    "empty_title": "Bài hát bạn thích sẽ xuất hiện ở đây",
+    "empty_description": "Lưu bài hát bằng cách nhấn vào biểu tượng +.",
+    "load_more": "Hiển thị thêm"
+  },
+  "playlist": {
+    "add_to_playlist": "Thêm vào danh sách phát",
+    "search_playlist": "Tìm danh sách phát",
+    "create_new": "Danh sách phát mới",
+    "my_playlist": "Danh sách phát của tôi",
+    "playlist_label": "Danh sách phát",
+    "no_playlists": "Chưa có danh sách phát",
+    "song_added": "Đã thêm vào {playlist}",
+    "add_error": "Không thể thêm vào danh sách phát",
+    "created_and_added": "Đã tạo danh sách phát và thêm bài hát",
+    "create_error": "Không thể tạo danh sách phát"
   }
 }

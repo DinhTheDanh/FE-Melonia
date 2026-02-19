@@ -91,16 +91,11 @@
     <!-- Album Content -->
     <template v-else-if="album">
       <!-- Hero Header with Gradient -->
-      <div class="relative">
+      <div class="relative" :style="{ '--dominant-color': dominantColor }">
         <!-- Gradient Background -->
-        <div
-          class="absolute inset-0 h-96"
-          :style="{
-            background: `linear-gradient(180deg, ${dominantColor}40 0%, ${dominantColor}20 50%, #121212 100%)`,
-          }"
-        />
+        <div class="absolute inset-0 h-96 album-gradient" />
 
-        <div class="relative px-8 pt-16 pb-6">
+        <div class="relative px-8 pt-6 pb-6">
           <div class="max-w-7xl mx-auto">
             <!-- Back Button -->
             <NuxtLink
@@ -164,7 +159,10 @@
                 :disabled="songs.length === 0"
                 @click="playAll"
               >
-                <UIcon name="i-lucide-play" class="size-7 text-black ml-1" />
+                <UIcon
+                  name="i-fa6-solid-play"
+                  class="size-6 text-black ml-0.5"
+                />
               </button>
 
               <!-- Shuffle -->
@@ -179,6 +177,7 @@
 
               <!-- Add Songs Button -->
               <button
+                v-if="isOwner"
                 class="p-2 hover:scale-110 transition-transform cursor-pointer"
                 @click="openAddSongsModal"
               >
@@ -190,6 +189,7 @@
 
               <!-- Edit Album -->
               <button
+                v-if="isOwner"
                 class="p-2 hover:scale-110 transition-transform cursor-pointer"
                 @click="openEditAlbumModal"
               >
@@ -201,6 +201,7 @@
 
               <!-- Delete Album -->
               <button
+                v-if="isOwner"
                 class="p-2 hover:scale-110 transition-transform cursor-pointer"
                 @click="openDeleteAlbumConfirm"
               >
@@ -289,7 +290,7 @@
                     class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-none outline-none bg-transparent"
                     @click="playSong(song)"
                   >
-                    <UIcon name="i-lucide-play" class="size-4 text-white" />
+                    <UIcon name="i-fa6-solid-play" class="size-4 text-white" />
                   </button>
                 </div>
 
@@ -340,7 +341,7 @@
                 </div>
 
                 <!-- More button with dropdown -->
-                <div class="flex items-center justify-center">
+                <div v-if="isOwner" class="flex items-center justify-center">
                   <UDropdownMenu
                     :items="[
                       {
@@ -667,11 +668,26 @@
 import musicApi from "~/api/musicApi";
 import fileApi from "~/api/fileApi";
 import { useDominantColor } from "~/composables/useDominantColor";
+import { usePlayerStore } from "~/stores/usePlayerStore";
 
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const { t: $t } = useI18n();
+const playerStore = usePlayerStore();
+const { user } = useAuth();
+
+// Check if current user is the owner of this album
+const isOwner = computed(() => {
+  if (!album.value || !user.value) return false;
+  const userId = user.value.id;
+  // Check various possible owner fields
+  return (
+    album.value.ArtistId === userId ||
+    album.value.UserId === userId ||
+    album.value.CreatedBy === userId
+  );
+});
 
 // States
 const album = ref(null);
@@ -729,8 +745,11 @@ const filteredSongs = computed(() => {
 });
 
 const availableSongs = computed(() => {
-  const albumSongIds = songs.value.map((s) => s.SongId);
-  return mySongs.value.filter((s) => !albumSongIds.includes(s.SongId));
+  const albumSongIds = songs.value.map((s) => s.SongId || s.Id || s.songId);
+  return mySongs.value.filter((s) => {
+    const id = s.SongId || s.Id || s.songId;
+    return !albumSongIds.includes(id);
+  });
 });
 
 const availableSongsFiltered = computed(() => {
@@ -805,13 +824,37 @@ const formatRelativeDate = (date) => {
 };
 
 const playAll = () => {
-  // TODO: Implement play all
-  console.log("Play all songs");
+  if (songs.value.length === 0) return;
+  // Map songs to the format expected by player store
+  const queue = songs.value.map((song) => ({
+    Id: song.SongId || song.Id || song.songId,
+    Title: song.Title,
+    ArtistNames: song.ArtistNames || "Unknown Artist",
+    Thumbnail: song.Thumbnail,
+    FileUrl: song.FileUrl,
+    Duration: song.Duration,
+  }));
+  playerStore.playTrack(queue[0], queue, 0);
 };
 
 const playSong = (song) => {
-  // TODO: Implement play song
-  console.log("Play song:", song.Title);
+  // Find the index of the clicked song
+  const index = songs.value.findIndex(
+    (s) =>
+      (s.SongId || s.Id || s.songId) ===
+      (song.SongId || song.Id || song.songId),
+  );
+  // Create queue from all songs
+  const queue = songs.value.map((s) => ({
+    Id: s.SongId || s.Id || s.songId,
+    Title: s.Title,
+    ArtistNames: s.ArtistNames || "Unknown Artist",
+    Thumbnail: s.Thumbnail,
+    FileUrl: s.FileUrl,
+    Duration: s.Duration,
+  }));
+  // Play the clicked song with the full queue
+  playerStore.playTrack(queue[index], queue, index);
 };
 
 // Add Songs Modal
@@ -826,8 +869,18 @@ const closeAddSongsModal = () => {
 };
 
 const addSongToAlbum = async (song) => {
+  const songId = song.SongId || song.Id || song.songId;
+  if (!songId) {
+    toast.add({
+      title: $t("song.error_title"),
+      description: "Song ID not found",
+      color: "red",
+    });
+    return;
+  }
+
   try {
-    await musicApi.addSongToAlbum(album.value.AlbumId, song.SongId);
+    await musicApi.addSongToAlbum(album.value.AlbumId, songId);
     songs.value.push(song);
     toast.add({
       title: $t("song.success_title"),
@@ -858,14 +911,17 @@ const closeRemoveSongConfirm = () => {
 const confirmRemoveSong = async () => {
   if (!songToRemove.value) return;
 
+  const songId =
+    songToRemove.value.SongId ||
+    songToRemove.value.Id ||
+    songToRemove.value.songId;
+  if (!songId) return;
+
   isRemoving.value = true;
   try {
-    await musicApi.removeSongFromAlbum(
-      album.value.AlbumId,
-      songToRemove.value.SongId,
-    );
+    await musicApi.removeSongFromAlbum(album.value.AlbumId, songId);
     songs.value = songs.value.filter(
-      (s) => s.SongId !== songToRemove.value.SongId,
+      (s) => (s.SongId || s.Id || s.songId) !== songId,
     );
     toast.add({
       title: $t("song.success_title"),
@@ -1013,5 +1069,14 @@ watch(
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.album-gradient {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--dominant-color, #a855f7) 25%, transparent) 0%,
+    color-mix(in srgb, var(--dominant-color, #a855f7) 12%, transparent) 50%,
+    #121212 100%
+  );
 }
 </style>

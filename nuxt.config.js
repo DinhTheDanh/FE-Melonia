@@ -1,7 +1,24 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  modules: ["@nuxt/ui", "@nuxtjs/i18n"],
+  modules: ["@nuxt/ui", "@nuxtjs/i18n", "@pinia/nuxt"],
   srcDir: "app/",
+
+  routeRules: {
+    "/**": {
+      headers: {
+        "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+        "Cross-Origin-Embedder-Policy": "unsafe-none",
+      },
+    },
+  },
+
+  vite: {
+    server: {
+      headers: {
+        "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+        "Cross-Origin-Embedder-Policy": "unsafe-none",
+      },
+    },
+  },
   runtimeConfig: {
     public: {
       googleClientId: process.env.NUXT_PUBLIC_GOOGLE_CLIENT_ID,
@@ -13,10 +30,6 @@ export default defineNuxtConfig({
   },
 
   css: ["~/assets/css/main.css"],
-
-  routeRules: {
-    "/": { prerender: true },
-  },
 
   compatibilityDate: "2025-01-15",
 

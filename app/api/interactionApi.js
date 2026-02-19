@@ -6,8 +6,8 @@ const interactionApi = {
     return axiosClient.post(`/Interaction/like/${data.songId}`);
   },
   // Lấy danh sách bài hát đã thích của người dùng
-  getLikedSongs(data) {
-    return axiosClient.get(`/Interaction/liked-songs`, data);
+  getLikedSongs(params) {
+    return axiosClient.get(`/Interaction/liked-songs`, { params });
   },
 
   // Tạo playlist mới
@@ -40,13 +40,8 @@ const interactionApi = {
   },
 
   // Lấy chi tiết playlist
-  getPlaylistDetails(playlistId, data) {
-    return axiosClient.get(`/Interaction/playlist/${playlistId}`, data);
-  },
-
-  // Lấy danh sách playlists
-  getPlaylists(data) {
-    return axiosClient.get(`/Interaction/playlists`, data);
+  getPlaylistDetails(playlistId, params) {
+    return axiosClient.get(`/Interaction/playlist/${playlistId}`, { params });
   },
 
   // Theo dõi nghệ sĩ
@@ -55,8 +50,8 @@ const interactionApi = {
   },
 
   // Lấy danh sách nghệ sĩ đã theo dõi
-  getFollowedArtists(data) {
-    return axiosClient.get(`/Interaction/followings`, data);
+  getFollowedArtists(params) {
+    return axiosClient.get(`/Interaction/followings`, { params });
   },
 
   // Xóa bài hát khỏi album

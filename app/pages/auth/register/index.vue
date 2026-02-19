@@ -1,22 +1,29 @@
 <template>
   <div
     class="min-h-screen text-white flex items-center justify-center font-sans"
+    style="
+      background: linear-gradient(180deg, #1a1a1a 0%, #121212 40%, #000 100%);
+    "
   >
-    <div class="w-full max-w-[450px] px-6 py-8 flex flex-col items-center">
+    <div
+      class="w-full max-w-md px-8 py-10 flex flex-col items-center bg-[#121212] rounded-xl"
+    >
+      <!-- Step 1: Email + Google -->
       <div v-if="currentStep === 1" class="flex flex-col items-center w-full">
         <img
           src="../../../assets/image/logo-cropped.svg"
           alt="Melonia Logo"
-          class="w-20 h-20 mb-4"
+          class="w-10 h-10 mb-4"
         />
         <h1
-          class="text-5xl font-bold flex flex-col items-center gap-1 mb-10 tracking-tighter text-center"
+          class="text-3xl font-bold flex flex-col items-center gap-1 mb-8 tracking-tight text-center"
         >
           <span>{{ t("auth.register.welcome") }}</span>
           <span>{{ t("auth.register.start") }}</span>
         </h1>
       </div>
 
+      <!-- Steps 2-4 Header with progress bar -->
       <div v-else class="w-full mb-8">
         <div
           class="w-full h-1 bg-gray-700 mb-6 relative rounded-full overflow-hidden"
@@ -57,6 +64,7 @@
         @submit="onNextStep"
         :validate-on="['blur', 'input']"
       >
+        <!-- Step 1: Email + Google Sign Up -->
         <div v-if="currentStep === 1">
           <UFormField
             :label="t('auth.register.email_label')"
@@ -80,12 +88,12 @@
             type="submit"
             block
             size="xl"
-            class="rounded-full font-bold mt-6 hover:scale-105 transition-transform"
+            class="rounded-full font-bold mt-6 hover:scale-105 transition-transform bg-purple-500 hover:bg-purple-400"
           >
             {{ t("auth.register.next") }}
           </UButton>
 
-          <div class="w-full flex items-center justify-between my-8">
+          <div class="w-full flex items-center my-6">
             <div class="h-px bg-gray-700 flex-1"></div>
             <span
               class="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest"
@@ -95,22 +103,22 @@
             <div class="h-px bg-gray-700 flex-1"></div>
           </div>
 
-          <div class="w-full flex justify-center h-[50px]">
-            <ClientOnly>
+          <!-- Google Button -->
+          <ClientOnly>
+            <div class="flex justify-center">
               <GoogleLogin :callback="onGoogleCallback" />
-              <template #fallback>
-                <div
-                  class="text-gray-500 text-sm font-bold flex items-center gap-2"
-                >
-                  <UIcon
-                    name="i-heroicons-arrow-path"
-                    class="animate-spin w-5 h-5"
-                  />
-                  Loading...
-                </div>
-              </template>
-            </ClientOnly>
-          </div>
+            </div>
+            <template #fallback>
+              <div
+                class="w-full flex items-center justify-center py-3 rounded-full border border-gray-500"
+              >
+                <UIcon
+                  name="i-heroicons-arrow-path"
+                  class="animate-spin w-5 h-5 text-gray-400"
+                />
+              </div>
+            </template>
+          </ClientOnly>
 
           <div class="mt-8 text-center">
             <p class="text-gray-400 font-medium">
@@ -125,6 +133,7 @@
           </div>
         </div>
 
+        <!-- Step 2: Name + Password -->
         <div v-else-if="currentStep === 2" class="flex flex-col gap-2">
           <UFormField
             name="name"
@@ -206,6 +215,7 @@
           </UButton>
         </div>
 
+        <!-- Step 3: Profile info -->
         <div v-else-if="currentStep === 3">
           <UButton
             type="submit"
@@ -218,8 +228,9 @@
           </UButton>
         </div>
 
+        <!-- Step 4: Terms & Conditions -->
         <div v-else-if="currentStep === 4">
-          <div class="bg-[#121212] p-4 rounded-lg space-y-4">
+          <div class="bg-[#1a1a1a] p-4 rounded-lg space-y-4">
             <UCheckbox
               v-model="state.marketing"
               :label="t('auth.register.marketing_opt_out')"
@@ -256,7 +267,6 @@
 import { computed, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { GoogleLogin } from "vue3-google-login";
-import { useRouter } from "vue-router";
 import authApi from "../../../api/authApi";
 import { useRegisterSchema } from "~/utils/registerSchema";
 
@@ -265,9 +275,10 @@ definePageMeta({
 });
 
 const { t } = useI18n();
-const router = useRouter();
 const formRef = ref();
 const isLoading = ref(false);
+const { saveTokens } = useAuth();
+const config = useRuntimeConfig();
 
 const currentStep = ref(1);
 const showPassword = ref(false);
@@ -347,15 +358,19 @@ async function finalSubmit() {
   }
 }
 
-const onGoogleCallback = async (response: any) => {
+// Uses GoogleLogin component callback - credential flow, no COOP issues
+const onGoogleCallback = async (response) => {
   try {
     const token = response.credential;
     if (token) {
-      await authApi.googleLogin(token);
-      router.push("/");
+      const res = await authApi.googleLogin(token);
+      const saved = saveTokens(res);
+      if (saved) {
+        await navigateTo("/", { replace: true });
+      }
     }
   } catch (error) {
-    console.error("Lỗi Google:", error);
+    console.error("Google register failed:", error);
   }
 };
 </script>
