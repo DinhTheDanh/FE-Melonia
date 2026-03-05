@@ -23,7 +23,6 @@ export function useDominantColor(imageUrl) {
     }
 
     img.onload = () => {
-      console.log("Image loaded successfully:", processedUrl);
       try {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
@@ -36,7 +35,6 @@ export function useDominantColor(imageUrl) {
 
         const imageData = ctx.getImageData(0, 0, sampleSize, sampleSize);
         const data = imageData.data;
-        console.log("Canvas data length:", data.length);
 
         // Color frequency map
         const colorMap = {};
@@ -74,7 +72,6 @@ export function useDominantColor(imageUrl) {
         }
 
         const colors = Object.values(colorMap);
-        console.log("Colors found:", colors.length, colors.slice(0, 3));
         if (colors.length > 0) {
           colors.sort((a, b) => {
             const scoreA = a.count * (a.saturation / a.count);
@@ -86,13 +83,9 @@ export function useDominantColor(imageUrl) {
           const r = Math.round(best.r / best.count);
           const g = Math.round(best.g / best.count);
           const b = Math.round(best.b / best.count);
-          console.log("Dominant color found:", r, g, b);
           dominantColor.value = `rgb(${r}, ${g}, ${b})`;
-        } else {
-          console.log("No colors found, using default");
         }
       } catch (error) {
-        console.error("Error extracting color from canvas:", error);
         dominantColor.value = "#a855f7";
       } finally {
         isLoading.value = false;
@@ -100,7 +93,6 @@ export function useDominantColor(imageUrl) {
     };
 
     img.onerror = (err) => {
-      console.error("Image load error:", err, processedUrl);
       dominantColor.value = "#a855f7";
       isLoading.value = false;
     };
@@ -110,17 +102,11 @@ export function useDominantColor(imageUrl) {
 
   // Setup watcher only on client side after mount
   onMounted(() => {
-    console.log("useDominantColor mounted, imageUrl:", imageUrl);
     if (typeof imageUrl === "object" && imageUrl.value !== undefined) {
-      console.log(
-        "Setting up watch for reactive ref, current value:",
-        imageUrl.value,
-      );
       // Watch reactive ref
       stopWatch = watch(
         imageUrl,
         (newUrl) => {
-          console.log("Watch triggered with newUrl:", newUrl);
           if (newUrl) {
             extractColor(newUrl);
           } else {
@@ -130,8 +116,6 @@ export function useDominantColor(imageUrl) {
         { immediate: true },
       );
     } else if (imageUrl) {
-      // Static string
-      console.log("Static string, extracting color for:", imageUrl);
       extractColor(imageUrl);
     }
   });

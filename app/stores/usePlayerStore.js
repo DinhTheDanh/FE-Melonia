@@ -195,7 +195,57 @@ export const usePlayerStore = defineStore("player", {
     },
 
     addToQueue(track) {
-      this.queue.push(track);
+      // If nothing is playing, start playing the added track
+      if (!this.currentTrack) {
+        this.currentTrack = track;
+        this.queue = [track];
+        this.queueIndex = 0;
+        this.isPlaying = true;
+        this.currentTime = 0;
+        return;
+      }
+      // Spotify behavior: insert after current track so it plays next
+      const insertAt = this.queueIndex + 1;
+      this.queue.splice(insertAt, 0, track);
+    },
+
+    removeFromQueue(index) {
+      if (index < 0 || index >= this.queue.length) return;
+      // Don't allow removing current track
+      if (index === this.queueIndex) return;
+      this.queue.splice(index, 1);
+      // Adjust queueIndex if needed
+      if (index < this.queueIndex) {
+        this.queueIndex--;
+      }
+    },
+
+    moveInQueue(fromIndex, toIndex) {
+      if (
+        fromIndex < 0 ||
+        fromIndex >= this.queue.length ||
+        toIndex < 0 ||
+        toIndex >= this.queue.length
+      )
+        return;
+      const [item] = this.queue.splice(fromIndex, 1);
+      this.queue.splice(toIndex, 0, item);
+      // Adjust queueIndex
+      if (fromIndex === this.queueIndex) {
+        this.queueIndex = toIndex;
+      } else if (fromIndex < this.queueIndex && toIndex >= this.queueIndex) {
+        this.queueIndex--;
+      } else if (fromIndex > this.queueIndex && toIndex <= this.queueIndex) {
+        this.queueIndex++;
+      }
+    },
+
+    playFromQueue(index) {
+      if (index < 0 || index >= this.queue.length) return;
+      this.queueIndex = index;
+      this.currentTrack = this.queue[index];
+      this.currentTime = 0;
+      this.isPlaying = true;
     },
 
     clearQueue() {

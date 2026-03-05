@@ -42,9 +42,18 @@
             <!-- Large Play Button -->
             <button
               class="w-14 h-14 bg-purple-500 hover:bg-purple-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer"
-              @click="playAll"
+              @click="togglePlayAll"
             >
-              <UIcon name="i-fa6-solid-play" class="size-6 text-black ml-0.5" />
+              <UIcon
+                v-if="isPlayingMyMusic"
+                name="i-fa6-solid-pause"
+                class="size-6 text-white"
+              />
+              <UIcon
+                v-else
+                name="i-fa6-solid-play"
+                class="size-6 text-white ml-0.5"
+              />
             </button>
 
             <!-- Shuffle -->
@@ -207,12 +216,12 @@
               class="group grid grid-cols-[16px_minmax(200px,4fr)_minmax(120px,2fr)_minmax(120px,1fr)_60px_40px] gap-4 px-4 py-2 rounded-md hover:bg-white/10 transition-colors items-center"
               :class="{ 'bg-white/5': selectedSongs.includes(song.SongId) }"
             >
-              <!-- # / Play / Checkbox -->
-              <div class="flex items-center justify-center relative">
+              <!-- # / Play / Checkbox / Equalizer -->
+              <div class="flex items-center justify-center relative w-5 h-5">
                 <!-- Checkbox (show on hover or when selected) -->
                 <div
                   :class="[
-                    'absolute inset-0 flex items-center justify-center transition-opacity',
+                    'absolute inset-0 flex items-center justify-center transition-opacity z-10',
                     selectedSongs.includes(song.SongId) ||
                     selectedSongs.length > 0
                       ? 'opacity-100'
@@ -227,26 +236,45 @@
                   />
                 </div>
 
-                <!-- Number (hide when checkbox shown) -->
+                <!-- Current track: show equalizer (hide when checkbox or hover) -->
+                <template
+                  v-if="isCurrentTrack(song) && selectedSongs.length === 0"
+                >
+                  <div
+                    class="equalizer group-hover:hidden!"
+                    :class="{ paused: !playerStore.isPlaying }"
+                  >
+                    <span class="equalizer-bar"></span>
+                    <span class="equalizer-bar"></span>
+                    <span class="equalizer-bar"></span>
+                    <span class="equalizer-bar"></span>
+                  </div>
+                </template>
+
+                <!-- Number (hide when checkbox shown or current track) -->
                 <span
-                  :class="[
-                    'text-sm text-neutral-400 transition-opacity',
-                    selectedSongs.includes(song.SongId) ||
-                    selectedSongs.length > 0
-                      ? 'opacity-0'
-                      : 'group-hover:opacity-0',
-                  ]"
+                  v-else-if="selectedSongs.length === 0"
+                  class="text-sm text-neutral-400 group-hover:hidden"
                 >
                   {{ (currentPage - 1) * itemsPerPage + index + 1 }}
                 </span>
 
-                <!-- Play button (show on hover when no selection) -->
+                <!-- Play/Pause button (show on hover when no selection) -->
                 <button
                   v-if="selectedSongs.length === 0"
-                  class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-none outline-none bg-transparent"
-                  @click="playSong(song)"
+                  class="hidden group-hover:flex items-center justify-center"
+                  @click.stop="togglePlaySong(song)"
                 >
-                  <UIcon name="i-fa6-solid-play" class="size-4 text-white" />
+                  <UIcon
+                    v-if="isCurrentTrack(song) && playerStore.isPlaying"
+                    name="i-fa6-solid-pause"
+                    class="size-4 text-white"
+                  />
+                  <UIcon
+                    v-else
+                    name="i-fa6-solid-play"
+                    class="size-4 text-white"
+                  />
                 </button>
               </div>
 
@@ -275,7 +303,12 @@
 
                 <!-- Title & Artist -->
                 <div class="min-w-0 flex-1">
-                  <p class="text-white text-sm font-medium truncate">
+                  <p
+                    class="text-sm font-medium truncate"
+                    :class="
+                      isCurrentTrack(song) ? 'text-purple-400' : 'text-white'
+                    "
+                  >
                     {{ song.Title }}
                   </p>
                   <p
@@ -303,32 +336,15 @@
                 {{ formatDuration(song.Duration) }}
               </div>
 
-              <!-- More button with dropdown -->
+              <!-- More button with SongContextMenu -->
               <div class="flex items-center justify-center">
-                <UDropdownMenu
-                  :items="[
-                    {
-                      label: $t('song.edit'),
-                      icon: 'i-lucide-pencil',
-                      onSelect: () => openEditModal(song),
-                    },
-                    {
-                      label: $t('song.delete'),
-                      icon: 'i-lucide-trash-2',
-                      color: 'error',
-                      onSelect: () => openDeleteConfirm(song),
-                    },
-                  ]"
-                >
-                  <button
-                    class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  >
-                    <UIcon
-                      name="i-lucide-more-horizontal"
-                      class="size-5 text-neutral-400 hover:text-white"
-                    />
-                  </button>
-                </UDropdownMenu>
+                <SongContextMenu
+                  :song="song"
+                  :is-owner="true"
+                  :show-go-to-album="!!song.AlbumId"
+                  @edit="openEditModal"
+                  @delete="openDeleteConfirm"
+                />
               </div>
             </div>
           </div>
@@ -781,6 +797,16 @@ const formatRelativeDate = (date) => {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
+// Check if currently playing a song from my music
+const isPlayingMyMusic = computed(() => {
+  if (!playerStore.currentTrack || !playerStore.isPlaying) return false;
+  const currentId =
+    playerStore.currentTrack.Id || playerStore.currentTrack.SongId;
+  return filteredSongs.value.some(
+    (s) => (s.SongId || s.Id || s.songId) === currentId,
+  );
+});
+
 // Actions
 const playAll = () => {
   if (filteredSongs.value.length === 0) return;
@@ -793,6 +819,14 @@ const playAll = () => {
     Duration: song.Duration,
   }));
   playerStore.playTrack(queue[0], queue, 0);
+};
+
+const togglePlayAll = () => {
+  if (isPlayingMyMusic.value) {
+    playerStore.togglePlay();
+  } else {
+    playAll();
+  }
 };
 
 const playSong = (song) => {
@@ -814,6 +848,24 @@ const playSong = (song) => {
     queue,
     index >= 0 ? index : 0,
   );
+};
+
+// Check if a specific song is the current track
+const isCurrentTrack = (song) => {
+  if (!playerStore.currentTrack) return false;
+  const songId = song.SongId || song.Id || song.songId;
+  return (
+    playerStore.currentTrack.Id === songId ||
+    playerStore.currentTrack.SongId === songId
+  );
+};
+
+const togglePlaySong = (song) => {
+  if (isCurrentTrack(song)) {
+    playerStore.togglePlay();
+  } else {
+    playSong(song);
+  }
 };
 
 const toggleLike = (song) => {

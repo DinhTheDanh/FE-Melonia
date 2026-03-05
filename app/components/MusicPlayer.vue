@@ -39,7 +39,7 @@
           </UTooltip>
 
           <!-- Track Info -->
-          <div class="min-w-0 flex-1">
+          <div class="min-w-0">
             <p
               class="text-sm text-white font-medium truncate hover:underline cursor-pointer"
             >
@@ -49,12 +49,14 @@
               class="text-xs text-neutral-400 truncate hover:text-white hover:underline cursor-pointer"
             >
               {{
-                playerStore.currentTrack.ArtistNames || t("home.unknown_artist")
+                playerStore.currentTrack.ArtistNames?.trim() ||
+                playerStore.currentTrack.ArtistName?.trim() ||
+                t("home.unknown_artist")
               }}
             </p>
           </div>
 
-          <!-- Like / Add to playlist Button -->
+          <!-- Like / Add to playlist Button  -->
           <UTooltip
             :text="
               currentTrackLiked
@@ -65,22 +67,24 @@
             :ui="{ content: 'bg-[#282828]' }"
           >
             <button
-              class="p-2 transition-colors cursor-pointer shrink-0"
-              :class="
-                currentTrackLiked
-                  ? 'text-primary-500 hover:text-primary-400'
-                  : 'text-neutral-400 hover:text-white'
-              "
+              ref="likeButtonRef"
+              class="shrink-0 cursor-pointer transition-all"
               @click="handleLikeClick"
             >
-              <UIcon
-                :name="
-                  currentTrackLiked
-                    ? 'i-lucide-check-circle'
-                    : 'i-lucide-plus-circle'
-                "
-                class="size-5"
-              />
+              <!-- Liked state: green filled circle with white check -->
+              <span
+                v-if="currentTrackLiked"
+                class="flex items-center justify-center w-5 h-5 rounded-full bg-primary hover:scale-110 transition-all"
+              >
+                <UIcon name="i-lucide-check" class="size-3.5 text-black" />
+              </span>
+              <!-- Not liked state: subtle plus circle -->
+              <span
+                v-else
+                class="flex items-center justify-center text-neutral-400 hover:text-white hover:scale-110 transition-all"
+              >
+                <UIcon name="i-lucide-plus-circle" class="size-5" />
+              </span>
             </button>
           </UTooltip>
         </template>
@@ -134,8 +138,7 @@
             :ui="{ content: 'bg-[#282828]' }"
           >
             <button
-              class="p-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="!playerStore.hasTrack"
+              class="p-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer"
               @click="playerStore.previousTrack"
             >
               <UIcon name="i-lucide-skip-back" class="size-5" />
@@ -149,8 +152,7 @@
             :ui="{ content: 'bg-[#282828]' }"
           >
             <button
-              class="w-9 h-9 bg-white hover:scale-105 rounded-full flex items-center justify-center transition-transform cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="!playerStore.hasTrack"
+              class="w-9 h-9 bg-white hover:scale-105 rounded-full flex items-center justify-center transition-transform cursor-pointer"
               @click="handlePlayPause"
             >
               <UIcon
@@ -178,8 +180,7 @@
             :ui="{ content: 'bg-[#282828]' }"
           >
             <button
-              class="p-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="!playerStore.hasTrack"
+              class="p-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer"
               @click="playerStore.nextTrack"
             >
               <UIcon name="i-lucide-skip-forward" class="size-5" />
@@ -262,22 +263,15 @@
           :ui="{ content: 'bg-[#282828]' }"
         >
           <button
-            class="p-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            class="p-1.5 transition-colors cursor-pointer"
+            :class="
+              showQueue
+                ? 'text-purple-500'
+                : 'text-neutral-400 hover:text-white'
+            "
+            @click="showQueue = !showQueue"
           >
             <UIcon name="i-lucide-list-music" class="size-4" />
-          </button>
-        </UTooltip>
-
-        <!-- Device -->
-        <UTooltip
-          :text="t('player.devices')"
-          arrow
-          :ui="{ content: 'bg-[#282828]' }"
-        >
-          <button
-            class="p-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-          >
-            <UIcon name="i-lucide-monitor-speaker" class="size-4" />
           </button>
         </UTooltip>
 
@@ -349,13 +343,173 @@
       @error="onError"
     ></audio>
 
-    <!-- Add to Playlist Modal -->
+    <!-- Add to Playlist Popover -->
     <AddToPlaylistModal
       v-if="showAddToPlaylist && playerStore.currentTrack"
       :song-id="playerStore.currentTrack.Id || playerStore.currentTrack.SongId"
       :song-title="playerStore.currentTrack.Title"
+      :trigger-rect="likeButtonRect"
       @close="showAddToPlaylist = false"
     />
+
+    <!-- Queue Panel (Spotify-style slide-up) -->
+    <Transition name="queue-slide">
+      <div
+        v-if="showQueue"
+        class="fixed right-2 bottom-24 w-95 max-h-[calc(100vh-180px)] bg-[#282828] rounded-lg shadow-2xl z-60 flex flex-col overflow-hidden"
+      >
+        <!-- Queue Header -->
+        <div class="flex items-center justify-between px-5 pt-4 pb-2">
+          <h3 class="text-base font-bold text-white">
+            {{ t("player.queue") }}
+          </h3>
+          <button
+            class="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            @click="showQueue = false"
+          >
+            <UIcon name="i-lucide-x" class="size-5" />
+          </button>
+        </div>
+
+        <!-- Now Playing -->
+        <div v-if="playerStore.currentTrack" class="px-3 pb-2">
+          <p class="text-xs font-bold text-white px-2 mb-1">
+            {{ t("player.now_playing") }}
+          </p>
+          <div class="flex items-center gap-3 px-2 py-2 rounded-md bg-white/5">
+            <img
+              v-if="playerStore.currentTrack.Thumbnail"
+              :src="playerStore.currentTrack.Thumbnail"
+              class="w-10 h-10 rounded object-cover shrink-0"
+            />
+            <div
+              v-else
+              class="w-10 h-10 rounded bg-[#3E3E3E] flex items-center justify-center shrink-0"
+            >
+              <UIcon name="i-lucide-music" class="size-4 text-neutral-500" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-white truncate">
+                {{ playerStore.currentTrack.Title }}
+              </p>
+              <p class="text-xs text-neutral-400 truncate">
+                {{
+                  playerStore.currentTrack.ArtistNames?.trim() ||
+                  playerStore.currentTrack.ArtistName?.trim() ||
+                  t("home.unknown_artist")
+                }}
+              </p>
+            </div>
+            <div class="flex items-center">
+              <div class="flex gap-0.5">
+                <span
+                  v-for="i in 3"
+                  :key="i"
+                  class="w-0.5 bg-purple-500 rounded-full animate-pulse"
+                  :style="{
+                    height: `${8 + Math.random() * 8}px`,
+                    animationDelay: `${i * 0.15}s`,
+                  }"
+                ></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Next Up -->
+        <div v-if="upcomingTracks.length > 0" class="px-3 pt-1 pb-1">
+          <div class="flex items-center justify-between px-2 mb-1">
+            <p class="text-xs font-bold text-white">
+              {{ t("player.next_up") }}
+            </p>
+            <button
+              v-if="upcomingTracks.length > 1"
+              class="text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              @click="playerStore.clearQueue()"
+            >
+              {{ t("player.clear_queue") }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Queue List (drag & drop) -->
+        <div class="flex-1 overflow-y-auto px-3 pb-3" ref="queueListRef">
+          <div
+            v-for="(track, idx) in upcomingTracks"
+            :key="`${track.Id || track.SongId}-${idx}`"
+            class="group flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-white/10 transition-colors cursor-pointer"
+            :class="{
+              'bg-white/5': dragOverIndex === getQueueRealIndex(idx),
+              'opacity-50': dragIndex === getQueueRealIndex(idx),
+            }"
+            draggable="true"
+            @dragstart="onDragStart($event, getQueueRealIndex(idx))"
+            @dragover.prevent="onDragOver($event, getQueueRealIndex(idx))"
+            @dragenter.prevent="onDragEnter(getQueueRealIndex(idx))"
+            @dragleave="onDragLeave"
+            @drop.prevent="onDrop($event, getQueueRealIndex(idx))"
+            @dragend="onDragEnd"
+            @click="playerStore.playFromQueue(getQueueRealIndex(idx))"
+          >
+            <!-- Drag Handle -->
+            <div
+              class="text-neutral-600 group-hover:text-neutral-400 cursor-grab active:cursor-grabbing shrink-0"
+            >
+              <UIcon name="i-lucide-grip-vertical" class="size-4" />
+            </div>
+
+            <!-- Thumbnail -->
+            <img
+              v-if="track.Thumbnail"
+              :src="track.Thumbnail"
+              class="w-10 h-10 rounded object-cover shrink-0"
+            />
+            <div
+              v-else
+              class="w-10 h-10 rounded bg-[#3E3E3E] flex items-center justify-center shrink-0"
+            >
+              <UIcon name="i-lucide-music" class="size-4 text-neutral-500" />
+            </div>
+
+            <!-- Info -->
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-white truncate">
+                {{ track.Title }}
+              </p>
+              <p class="text-xs text-neutral-400 truncate">
+                {{
+                  track.ArtistNames?.trim() ||
+                  track.ArtistName?.trim() ||
+                  t("home.unknown_artist")
+                }}
+              </p>
+            </div>
+
+            <!-- Remove button -->
+            <button
+              class="p-1 text-neutral-500 opacity-0 group-hover:opacity-100 hover:text-white transition-all cursor-pointer shrink-0"
+              @click.stop="playerStore.removeFromQueue(getQueueRealIndex(idx))"
+            >
+              <UIcon name="i-lucide-x" class="size-4" />
+            </button>
+          </div>
+
+          <!-- Empty queue -->
+          <div
+            v-if="upcomingTracks.length === 0"
+            class="flex flex-col items-center justify-center py-10 text-center"
+          >
+            <UIcon
+              name="i-lucide-list-music"
+              class="size-10 text-neutral-600 mb-3"
+            />
+            <p class="text-sm text-neutral-400">
+              {{ t("player.queue_empty") }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -376,11 +530,71 @@ const isDraggingVolume = ref(false);
 
 // Add to playlist popup
 const showAddToPlaylist = ref(false);
+const likeButtonRef = ref(null);
+const likeButtonRect = ref(null);
+
+// Queue panel
+const showQueue = ref(false);
+const queueListRef = ref(null);
+
+// Drag & drop for queue
+const dragIndex = ref(null);
+const dragOverIndex = ref(null);
+
+// Upcoming tracks (everything after current)
+const upcomingTracks = computed(() => {
+  if (
+    !playerStore.queue.length ||
+    playerStore.queueIndex >= playerStore.queue.length - 1
+  )
+    return [];
+  return playerStore.queue.slice(playerStore.queueIndex + 1);
+});
+
+// Get the real queue index from the upcoming list index
+const getQueueRealIndex = (upcomingIdx) => {
+  return playerStore.queueIndex + 1 + upcomingIdx;
+};
+
+// Drag & drop handlers
+const onDragStart = (e, index) => {
+  dragIndex.value = index;
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", index.toString());
+};
+
+const onDragOver = (e, index) => {
+  e.dataTransfer.dropEffect = "move";
+};
+
+const onDragEnter = (index) => {
+  dragOverIndex.value = index;
+};
+
+const onDragLeave = () => {
+  // Don't clear immediately, let dragenter of next element handle it
+};
+
+const onDrop = (e, toIndex) => {
+  const fromIndex = dragIndex.value;
+  if (fromIndex !== null && fromIndex !== toIndex) {
+    playerStore.moveInQueue(fromIndex, toIndex);
+  }
+  dragIndex.value = null;
+  dragOverIndex.value = null;
+};
+
+const onDragEnd = () => {
+  dragIndex.value = null;
+  dragOverIndex.value = null;
+};
 
 // Track if we've initialized from restored state
 const hasInitialized = ref(false);
 // Track if audio is ready to play after restore
 const audioReady = ref(false);
+// Flag to prevent competing play/load calls
+const isLoadingAudio = ref(false);
 
 // Check if current track is liked
 const currentTrackLiked = computed(() => {
@@ -395,7 +609,10 @@ const handleLikeClick = async () => {
   const songId = playerStore.currentTrack.Id || playerStore.currentTrack.SongId;
 
   if (currentTrackLiked.value) {
-    // Already liked → show add to playlist popup
+    // Already liked → show add to playlist popover above button
+    if (likeButtonRef.value) {
+      likeButtonRect.value = likeButtonRef.value.getBoundingClientRect();
+    }
     showAddToPlaylist.value = true;
   } else {
     // Not liked → toggle like (add to library)
@@ -457,51 +674,50 @@ const formatTime = (seconds) => {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
 
-// Handle play/pause with proper audio loading after refresh
-const handlePlayPause = async () => {
+// Handle play/pause - simply toggle the store state, let the watcher handle audio
+const handlePlayPause = () => {
   if (!playerStore.currentTrack) return;
+  playerStore.togglePlay();
+};
 
-  if (playerStore.isPlaying) {
-    playerStore.pause();
-    return;
-  }
+// Helper: safely load and play audio without race conditions
+const safeLoadAndPlay = (src, seekTo = 0) => {
+  if (!audioRef.value || !src) return;
 
-  // If audio is not ready yet (after restore/refresh), load it first
-  if (audioRef.value && audioSrc.value) {
-    if (audioRef.value.readyState < 2) {
-      playerStore.setLoading(true);
-      audioRef.value.load();
+  isLoadingAudio.value = true;
+  playerStore.setLoading(true);
 
-      // Wait for canplay before playing
-      await new Promise((resolve) => {
-        const onReady = () => {
-          audioRef.value?.removeEventListener("canplay", onReady);
-          resolve();
-        };
-        audioRef.value.addEventListener("canplay", onReady);
+  // Set src and load
+  audioRef.value.src = src;
+  audioRef.value.load();
 
-        // Timeout fallback
-        setTimeout(resolve, 5000);
+  const onReady = () => {
+    if (!audioRef.value) return;
+    isLoadingAudio.value = false;
+    playerStore.setLoading(false);
+
+    // Seek if needed
+    if (seekTo > 0) {
+      audioRef.value.currentTime = seekTo;
+    }
+
+    // Play if store says we should be playing
+    if (playerStore.isPlaying) {
+      audioRef.value.play().catch((err) => {
+        playerStore.pause();
       });
-
-      // Restore position if available
-      if (playerStore.currentTime > 0 && audioRef.value) {
-        audioRef.value.currentTime = playerStore.currentTime;
-      }
     }
+  };
 
-    playerStore.play();
+  audioRef.value.addEventListener("canplay", onReady, { once: true });
 
-    // Ensure audio actually starts playing
-    try {
-      await audioRef.value.play();
-    } catch (err) {
-      console.error("Play failed:", err);
-      playerStore.pause();
+  // Timeout fallback
+  setTimeout(() => {
+    if (isLoadingAudio.value) {
+      isLoadingAudio.value = false;
+      playerStore.setLoading(false);
     }
-  } else {
-    playerStore.togglePlay();
-  }
+  }, 10000);
 };
 
 // Initialize player from restored state (after page refresh)
@@ -526,47 +742,10 @@ onMounted(async () => {
 
     // Pre-load the audio source so it's ready when user clicks play
     if (audioSrc.value) {
-      audioRef.value.preload = "auto";
-      audioRef.value.load();
-
-      // Listen for when audio is ready
-      audioRef.value.addEventListener(
-        "canplay",
-        () => {
-          audioReady.value = true;
-          // Restore position
-          if (playerStore.currentTime > 0) {
-            audioRef.value.currentTime = playerStore.currentTime;
-          }
-        },
-        { once: true },
-      );
+      safeLoadAndPlay(audioSrc.value, playerStore.currentTime);
     }
   }
 });
-
-// Watch audioSrc to load audio when it becomes available (important for restore)
-watch(
-  audioSrc,
-  (newSrc) => {
-    if (newSrc && audioRef.value && hasInitialized.value) {
-      audioRef.value.load();
-
-      // Restore position after audio loads
-      audioRef.value.addEventListener(
-        "loadedmetadata",
-        () => {
-          if (playerStore.currentTime > 0 && !playerStore.isPlaying) {
-            audioRef.value.currentTime = playerStore.currentTime;
-          }
-          audioReady.value = true;
-        },
-        { once: true },
-      );
-    }
-  },
-  { immediate: true },
-);
 
 // Audio element event handlers
 const onLoadedMetadata = () => {
@@ -589,61 +768,35 @@ const onPlaying = () => {
   playerStore.setLoading(false);
 };
 
-const onPause = () => {
-  // Audio paused
-};
+const onPause = () => {};
 
 const onWaiting = () => {
   playerStore.setLoading(true);
 };
 
 const onCanPlay = () => {
-  playerStore.setLoading(false);
+  if (!isLoadingAudio.value) {
+    playerStore.setLoading(false);
+  }
 };
 
 const onError = (e) => {
-  console.error("Audio error:", e);
-  console.error("Audio element error:", audioRef.value?.error);
   playerStore.setLoading(false);
 };
 
-// Watch for play/pause state changes
 watch(
   () => playerStore.isPlaying,
   (isPlaying) => {
     if (!audioRef.value || !audioSrc.value) return;
+    if (isLoadingAudio.value) return;
 
     if (isPlaying) {
-      // Make sure audio is loaded before playing
       if (audioRef.value.readyState >= 2) {
         audioRef.value.play().catch((err) => {
-          console.error("Play failed:", err);
           playerStore.pause();
         });
       } else {
-        // Audio not ready, load it first
-        playerStore.setLoading(true);
-        audioRef.value.load();
-        audioRef.value.addEventListener(
-          "canplay",
-          () => {
-            if (playerStore.isPlaying) {
-              // Restore position if needed
-              if (
-                playerStore.currentTime > 0 &&
-                Math.abs(audioRef.value.currentTime - playerStore.currentTime) >
-                  1
-              ) {
-                audioRef.value.currentTime = playerStore.currentTime;
-              }
-              audioRef.value.play().catch((err) => {
-                console.error("Play after load failed:", err);
-                playerStore.pause();
-              });
-            }
-          },
-          { once: true },
-        );
+        safeLoadAndPlay(audioSrc.value, playerStore.currentTime);
       }
     } else {
       audioRef.value.pause();
@@ -681,20 +834,25 @@ watch(
   },
 );
 
-// Watch for track changes (including auto-next)
+// Watch for track changes (including auto-next) - SINGLE source of truth for loading new tracks
 watch(
   () => playerStore.currentTrack,
   async (newTrack, oldTrack) => {
     if (!audioRef.value || !newTrack) return;
-    // Only react to actual track changes (not initial mount)
+
+    // Skip initial mount (handled by onMounted)
+    if (!oldTrack && hasInitialized.value) return;
+
+    // Repeat one: just restart
     if (
       oldTrack &&
-      newTrack.Id === oldTrack.Id &&
+      (newTrack.Id || newTrack.SongId) === (oldTrack.Id || oldTrack.SongId) &&
       playerStore.repeatMode === "one"
     ) {
-      // Repeat one: just restart
       audioRef.value.currentTime = 0;
-      audioRef.value.play().catch(() => {});
+      if (playerStore.isPlaying) {
+        audioRef.value.play().catch(() => {});
+      }
       return;
     }
 
@@ -706,43 +864,10 @@ watch(
     await nextTick();
 
     if (audioSrc.value) {
-      audioRef.value.src = audioSrc.value;
-      audioRef.value.load();
-
-      // Use canplay event to ensure audio is ready before playing
-      const playWhenReady = () => {
-        if (playerStore.isPlaying && audioRef.value) {
-          audioRef.value.play().catch((err) => {
-            console.error("Autoplay on track change failed:", err);
-          });
-        }
-      };
-
-      audioRef.value.addEventListener("canplay", playWhenReady, { once: true });
+      safeLoadAndPlay(audioSrc.value, 0);
     }
   },
 );
-
-// Watch for audioSrc changes (handles when FileUrl is loaded async - but not during track changes)
-watch(audioSrc, async (newSrc, oldSrc) => {
-  if (newSrc && newSrc !== oldSrc && audioRef.value && playerStore.isPlaying) {
-    await nextTick();
-    // Only load if the src actually changed and isn't handled by track watcher
-    if (audioRef.value.src !== newSrc) {
-      audioRef.value.src = newSrc;
-      audioRef.value.load();
-      audioRef.value.addEventListener(
-        "canplay",
-        () => {
-          if (playerStore.isPlaying) {
-            audioRef.value?.play().catch(() => {});
-          }
-        },
-        { once: true },
-      );
-    }
-  }
-});
 
 // Progress bar drag handling
 const handleProgressClick = (e) => {
@@ -819,3 +944,15 @@ const startVolumeDrag = (e) => {
   document.addEventListener("mouseup", onUp);
 };
 </script>
+
+<style scoped>
+.queue-slide-enter-active,
+.queue-slide-leave-active {
+  transition: all 0.2s ease;
+}
+.queue-slide-enter-from,
+.queue-slide-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+</style>

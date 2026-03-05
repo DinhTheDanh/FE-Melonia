@@ -77,62 +77,20 @@
       </div>
     </header>
 
-    <UDashboardGroup class="mt-16 bg-[#121212] mx-2 rounded-lg">
+    <UDashboardGroup
+      class="flex-1 bg-black mx-2 rounded-lg mt-16 mb-[90px] h-[calc(100vh-64px-90px)] gap-2"
+    >
       <UDashboardSidebar
         collapsible
         resizable
         v-model:collapsed="collapsed"
-        :min-size="18"
-        :max-size="25"
-        :collapsed-size="5"
-        class="group mx-2 border-none group"
+        :min-size="22"
+        :max-size="23"
+        :collapsed-size="7"
+        class="group border-none bg-[#121212] rounded-lg h-full"
       >
         <template #header>
-          <div class="flex justify-between items-center w-full py-4">
-            <div
-              class="flex justify-center items-center gap-2 group cursor-pointer"
-            >
-              <div @click="collapsed = !collapsed" class="flex items-center">
-                <UIcon
-                  :name="
-                    collapsed
-                      ? 'i-lucide-panel-left-open'
-                      : 'i-lucide-panel-right-open'
-                  "
-                  :class="
-                    !collapsed
-                      ? 'size-5 text-zinc-400 transition-all duration-300 ease-out opacity-0 -translate-x-3 w-0 group-hover:opacity-100 group-hover:translate-x-0 group-hover:w-5'
-                      : 'size-7 text-zinc-400'
-                  "
-                  class="hover:text-white"
-                />
-              </div>
-
-              <span
-                v-if="!collapsed"
-                class="text-md font-semibold transition-all"
-              >
-                {{ t("sidebar.library") }}
-              </span>
-            </div>
-
-            <UTooltip
-              :text="t('sidebar.create_playlist')"
-              arrow
-              :ui="{ content: 'bg-[#282828]' }"
-            >
-              <div
-                class="p-1.5 bg-[#1F1F1F] rounded-full flex items-center justify-center hover:bg-neutral-700 cursor-pointer"
-                :class="collapsed ? 'mx-auto mt-1' : ''"
-                @click="handleCreatePlaylist"
-              >
-                <UIcon
-                  name="i-lucide-plus"
-                  class="size-5 text-zinc-400 hover:text-white"
-                />
-              </div>
-            </UTooltip>
-          </div>
+          <div class="!h-0 !min-h-0 !p-0 !m-0 overflow-hidden"></div>
         </template>
 
         <template #resize-handle="{ onMouseDown, onTouchStart, onDoubleClick }">
@@ -145,49 +103,176 @@
         </template>
 
         <!-- Sidebar Content -->
-        <div class="flex-1 overflow-y-auto px-2 pb-4">
-          <!-- COLLAPSED STATE: Show icons only -->
+        <div class="flex flex-col h-full overflow-hidden">
           <template v-if="collapsed">
-            <!-- Liked Songs Icon (collapsed) -->
-            <UTooltip
-              v-if="likedSongsStore.totalCount > 0"
-              :text="t('sidebar.liked_songs')"
-              arrow
-              :ui="{ content: 'bg-[#282828]' }"
-              :side="'right'"
+            <div class="flex flex-col items-center pt-3 px-1 gap-2">
+              <!-- Library icon -->
+              <button
+                class="p-1.5 transition-colors cursor-pointer text-zinc-400 hover:text-white"
+                @click="collapsed = false"
+              >
+                <UIcon name="i-lucide-library-big" class="size-8" />
+              </button>
+              <!-- Plus button -->
+              <button
+                class="p-1.5 transition-colors flex items-center justify-center rounded-full cursor-pointer text-zinc-400 hover:text-white hover:bg-white/10 bg-white/7"
+                @click="handleCreatePlaylist"
+              >
+                <UIcon name="i-lucide-plus" class="size-7" />
+              </button>
+            </div>
+
+            <!-- Collapsed items list -->
+            <div
+              class="flex-1 overflow-y-auto flex flex-col items-center gap-0.5 px-1 pt-3 scrollbar-hide"
             >
+              <!-- Liked Songs -->
+              <UTooltip
+                v-if="likedSongsStore.totalCount > 0"
+                :text="t('sidebar.liked_songs')"
+                arrow
+                :ui="{ content: 'bg-[#282828]' }"
+                :side="'right'"
+              >
+                <NuxtLink
+                  to="/user/liked-songs"
+                  class="block p-1 rounded-md hover:bg-white/10 transition-colors cursor-pointer"
+                  :class="{ 'bg-white/10': route.path === '/user/liked-songs' }"
+                >
+                  <div
+                    class="w-12 h-12 rounded flex items-center justify-center"
+                    style="
+                      background: linear-gradient(135deg, #450af5, #c4efd9);
+                    "
+                  >
+                    <UIcon name="i-lucide-heart" class="size-3.5 text-white" />
+                  </div>
+                </NuxtLink>
+              </UTooltip>
+
+              <!-- Playlists -->
+              <UTooltip
+                v-for="playlist in userPlaylists"
+                :key="playlist.PlaylistId || playlist.Id"
+                :text="playlist.Title || playlist.Name"
+                arrow
+                :ui="{ content: 'bg-[#282828]' }"
+                :side="'right'"
+              >
+                <NuxtLink
+                  :to="`/playlist/${playlist.PlaylistId || playlist.Id}`"
+                  class="block p-1 rounded-md hover:bg-white/10 transition-colors cursor-pointer"
+                  :class="{
+                    'bg-white/10':
+                      route.path ===
+                      `/playlist/${playlist.PlaylistId || playlist.Id}`,
+                  }"
+                >
+                  <div
+                    class="w-12 h-12 bg-[#282828] rounded flex items-center justify-center overflow-hidden"
+                  >
+                    <img
+                      v-if="getPlaylistThumb(playlist)"
+                      :src="getPlaylistThumb(playlist)"
+                      :alt="playlist.Title"
+                      class="w-full h-full object-cover"
+                    />
+                    <UIcon
+                      v-else
+                      name="i-lucide-music"
+                      class="size-5 text-neutral-400"
+                    />
+                  </div>
+                </NuxtLink>
+              </UTooltip>
+            </div>
+          </template>
+
+          <template v-else>
+            <!-- Library Header Row -->
+            <div class="flex items-center justify-between px-4 pt-2 pb-1">
+              <button
+                class="flex items-center gap-2 cursor-pointer group/lib"
+                @click="collapsed = true"
+              >
+                <UIcon
+                  name="i-lucide-library-big"
+                  class="size-6 text-zinc-400 group-hover/lib:text-white transition-colors"
+                />
+                <span
+                  class="text-base font-bold text-zinc-400 group-hover/lib:text-white transition-colors"
+                >
+                  {{ t("sidebar.library") }}
+                </span>
+              </button>
+              <div class="flex items-center gap-1">
+                <UTooltip
+                  :text="t('sidebar.create_playlist')"
+                  arrow
+                  :ui="{ content: 'bg-[#282828]' }"
+                >
+                  <button
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/7 hover:bg-white/15 cursor-pointer text-white text-sm font-semibold transition-colors"
+                    @click.stop="handleCreatePlaylist"
+                  >
+                    <UIcon name="i-lucide-plus" class="size-4" />
+                    {{ t("sidebar.create") }}
+                  </button>
+                </UTooltip>
+              </div>
+            </div>
+
+            <!-- Scrollable Playlist List -->
+            <div
+              class="flex-1 overflow-y-auto px-2 pb-2 scrollbar-hide mt-4 gap-1 flex flex-col"
+            >
+              <!-- Liked Songs -->
               <NuxtLink
+                v-if="
+                  likedSongsStore.totalCount > 0 &&
+                  (sidebarFilter === 'all' || sidebarFilter === 'playlists')
+                "
                 to="/user/liked-songs"
-                class="flex items-center justify-center py-2 rounded-md hover:bg-white/10 transition-colors cursor-pointer mt-2"
+                class="flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-white/10 transition-colors cursor-pointer"
+                :class="{ 'bg-white/10': route.path === '/user/liked-songs' }"
               >
                 <div
-                  class="w-12 h-12 rounded-md flex items-center justify-center shrink-0"
+                  class="w-12 h-12 rounded-sm flex items-center justify-center shrink-0"
                   style="background: linear-gradient(135deg, #450af5, #c4efd9)"
                 >
-                  <UIcon name="i-lucide-heart" class="size-5 text-white" />
+                  <UIcon name="i-lucide-heart" class="size-4 text-white" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-medium text-white truncate">
+                    {{ t("sidebar.liked_songs") }}
+                  </p>
+                  <p class="text-xs text-neutral-400 flex items-center gap-1">
+                    <UIcon name="i-lucide-pin" class="size-3 text-green-500" />
+                    {{ t("sidebar.playlist_label") }} ·
+                    {{ likedSongsStore.totalCount }}
+                    {{ t("sidebar.songs_label") }}
+                  </p>
                 </div>
               </NuxtLink>
-            </UTooltip>
 
-            <!-- Playlist Icons (collapsed) -->
-            <UTooltip
-              v-for="playlist in userPlaylists"
-              :key="playlist.PlaylistId || playlist.Id"
-              :text="playlist.Title || playlist.Name"
-              arrow
-              :ui="{ content: 'bg-[#282828]' }"
-              :side="'right'"
-            >
+              <!-- User Playlists -->
               <NuxtLink
-                :to="`/user/my-albums/${playlist.PlaylistId || playlist.Id}`"
-                class="flex items-center justify-center py-2 rounded-md hover:bg-white/10 transition-colors cursor-pointer"
+                v-for="playlist in filteredPlaylists"
+                :key="playlist.PlaylistId || playlist.Id"
+                :to="`/playlist/${playlist.PlaylistId || playlist.Id}`"
+                class="flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-white/10 transition-colors cursor-pointer group/pl"
+                :class="{
+                  'bg-white/10':
+                    route.path ===
+                    `/playlist/${playlist.PlaylistId || playlist.Id}`,
+                }"
               >
                 <div
-                  class="w-12 h-12 bg-[#282828] rounded-md flex items-center justify-center shrink-0 overflow-hidden"
+                  class="w-12 h-12 bg-[#282828] rounded flex items-center justify-center shrink-0 overflow-hidden"
                 >
                   <img
-                    v-if="playlist.Thumbnail"
-                    :src="playlist.Thumbnail"
+                    v-if="getPlaylistThumb(playlist)"
+                    :src="getPlaylistThumb(playlist)"
                     :alt="playlist.Title"
                     class="w-full h-full object-cover"
                   />
@@ -197,73 +282,26 @@
                     class="size-5 text-neutral-400"
                   />
                 </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-medium truncate text-white">
+                    {{ playlist.Title || playlist.Name }}
+                  </p>
+                  <p
+                    class="text-xs text-neutral-400 truncate flex items-center gap-1"
+                  >
+                    {{ t("sidebar.playlist_label") }} ·
+                    {{ playlist.OwnerName || data?.FullName || "" }}
+                  </p>
+                </div>
               </NuxtLink>
-            </UTooltip>
-          </template>
-
-          <!-- EXPANDED STATE: Full entries -->
-          <template v-else>
-            <!-- Liked Songs Entry -->
-            <NuxtLink
-              v-if="likedSongsStore.totalCount > 0"
-              to="/user/liked-songs"
-              class="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-white/10 transition-colors cursor-pointer group mt-2"
-            >
-              <div
-                class="w-12 h-12 rounded-md flex items-center justify-center shrink-0"
-                style="background: linear-gradient(135deg, #450af5, #c4efd9)"
-              >
-                <UIcon name="i-lucide-heart" class="size-5 text-white" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-semibold text-white truncate">
-                  {{ t("sidebar.liked_songs") }}
-                </p>
-                <p class="text-xs text-neutral-400 flex items-center gap-1">
-                  <UIcon name="i-lucide-pin" class="size-3" />
-                  {{ t("sidebar.playlist_label") }} ·
-                  {{ likedSongsStore.totalCount }}
-                  {{ t("sidebar.songs_label") }}
-                </p>
-              </div>
-            </NuxtLink>
-
-            <!-- User Playlists -->
-            <NuxtLink
-              v-for="playlist in userPlaylists"
-              :key="playlist.PlaylistId || playlist.Id"
-              :to="`/user/my-albums/${playlist.PlaylistId || playlist.Id}`"
-              class="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <div
-                class="w-12 h-12 bg-[#282828] rounded-md flex items-center justify-center shrink-0 overflow-hidden"
-              >
-                <img
-                  v-if="playlist.Thumbnail"
-                  :src="playlist.Thumbnail"
-                  :alt="playlist.Title"
-                  class="w-full h-full object-cover"
-                />
-                <UIcon
-                  v-else
-                  name="i-lucide-music"
-                  class="size-5 text-neutral-400"
-                />
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-white truncate">
-                  {{ playlist.Title || playlist.Name }}
-                </p>
-                <p class="text-xs text-neutral-400">
-                  {{ t("sidebar.playlist_label") }}
-                </p>
-              </div>
-            </NuxtLink>
+            </div>
           </template>
         </div>
       </UDashboardSidebar>
 
-      <div class="flex-1 overflow-y-auto bg-black px-4 pb-28">
+      <div
+        class="flex-1 overflow-y-auto bg-[#121212] rounded-lg h-full scrollbar-hide"
+      >
         <slot />
       </div>
     </UDashboardGroup>
@@ -278,7 +316,7 @@ import userApi from "~/api/userApi";
 import musicApi from "~/api/musicApi";
 import interactionApi from "~/api/interactionApi";
 import { useLikedSongsStore } from "~/stores/useLikedSongsStore";
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 
 const route = useRoute();
 const data = ref(null);
@@ -363,22 +401,59 @@ const dropdownItems = computed(() => {
   return baseItems;
 });
 const collapsed = ref(false); // trạng thái thu gọn sidebar
+const sidebarFilter = ref("all"); // 'all' | 'playlists'
+const sidebarSearch = ref(false);
+const sidebarSearchQuery = ref("");
+const sidebarSortOrder = ref("recent"); // 'recent' | 'alpha'
+
+// Toggle sort order
+const toggleSortOrder = () => {
+  sidebarSortOrder.value =
+    sidebarSortOrder.value === "recent" ? "alpha" : "recent";
+};
+
+// Filtered playlists based on search and filter
+const filteredPlaylists = computed(() => {
+  let list = userPlaylists.value;
+  if (sidebarSearchQuery.value) {
+    const q = sidebarSearchQuery.value.toLowerCase();
+    list = list.filter((p) =>
+      (p.Title || p.Name || "").toLowerCase().includes(q),
+    );
+  }
+  if (sidebarSortOrder.value === "alpha") {
+    list = [...list].sort((a, b) =>
+      (a.Title || a.Name || "").localeCompare(b.Title || b.Name || ""),
+    );
+  }
+  return list;
+});
 
 // Handle create new playlist
 const handleCreatePlaylist = async () => {
   try {
     const playlistCount = userPlaylists.value.length + 1;
-    const name = `${t("playlist.my_playlist")} #${playlistCount}`;
-    const res = await interactionApi.createPlaylist({ name, description: "" });
+    const title = `${t("playlist.my_playlist")} #${playlistCount}`;
+    const res = await interactionApi.createPlaylist({ Title: title });
+
+    // Get the new playlist ID from response
+    const newPlaylistId =
+      res?.PlaylistId || res?.Id || res?.data?.PlaylistId || res?.data?.Id;
+
     toast.add({
       title: t("notify.success"),
       description: t("sidebar.playlist_created"),
       color: "green",
     });
+
     // Refresh playlists
     await fetchUserPlaylists();
+
+    // Navigate to the new playlist page
+    if (newPlaylistId) {
+      await navigateTo(`/playlist/${newPlaylistId}`);
+    }
   } catch (error) {
-    console.error("Error creating playlist:", error);
     toast.add({
       title: t("notify.error"),
       description: t("playlist.create_error"),
@@ -392,9 +467,7 @@ const fetchUserData = async () => {
   try {
     const response = await userApi.getUserInfo();
     data.value = response;
-  } catch (error) {
-    console.error("Error fetching user data:", error);
-  }
+  } catch (error) {}
 };
 
 onMounted(() => {
@@ -406,12 +479,45 @@ onMounted(() => {
   }
 });
 
+// Watch for sidebar refresh signal from playlist edit page
+const sidebarRefreshKey = useState("sidebarRefreshKey", () => 0);
+watch(sidebarRefreshKey, () => {
+  fetchUserPlaylists();
+});
+
+// Shared state for locally updated thumbnails (when BE doesn't persist them)
+const playlistThumbnailOverrides = useState(
+  "playlistThumbnailOverrides",
+  () => ({}),
+);
+
+// Helper: get real thumbnail (check local overrides first, filter dicebear)
+const getPlaylistThumb = (playlist) => {
+  const id = playlist?.PlaylistId || playlist?.Id;
+  // Check local overrides first (from playlist edit page)
+  if (id && playlistThumbnailOverrides.value[id]) {
+    return playlistThumbnailOverrides.value[id];
+  }
+  const thumb = playlist?.Thumbnail;
+  if (!thumb) return null;
+  if (thumb.includes("dicebear")) return null;
+  return thumb;
+};
+
 const fetchUserPlaylists = async () => {
   try {
     const res = await musicApi.getMyPlaylists({ pageIndex: 1, pageSize: 50 });
     userPlaylists.value = res.Data || res || [];
-  } catch (error) {
-    console.error("Error fetching playlists:", error);
-  }
+  } catch (error) {}
 };
 </script>
+
+<style scoped>
+/* Remove sidebar header height so content starts at top */
+:deep([data-slot="header"]) {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+</style>

@@ -1,58 +1,7 @@
 <template>
-  <div class="min-h-screen pb-8">
-    <!-- Hero Gradient Header -->
-    <div
-      class="relative -mx-4 -mt-4 px-6 pt-12 pb-8"
-      style="
-        background: linear-gradient(
-          180deg,
-          #4c1d95 0%,
-          #2d1a5e 45%,
-          #121212 100%
-        );
-      "
-    >
-      <h1 class="text-4xl font-bold text-white mb-6">
-        {{ greeting }}
-      </h1>
-
-      <!-- Quick Pick Grid (Recently Played - compact cards) -->
-      <div
-        v-if="recentSongs.length > 0"
-        class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-6"
-      >
-        <div
-          v-for="song in recentSongs.slice(0, 8)"
-          :key="song.Id"
-          class="flex items-center bg-white/10 hover:bg-white/20 rounded-md overflow-hidden group cursor-pointer transition-colors"
-          @click="playSong(song, recentSongs)"
-        >
-          <img
-            v-if="song.Thumbnail"
-            :src="song.Thumbnail"
-            :alt="song.Title"
-            class="w-12 h-12 object-cover shrink-0"
-          />
-          <div
-            v-else
-            class="w-12 h-12 bg-[#282828] flex items-center justify-center shrink-0"
-          >
-            <UIcon name="i-lucide-music" class="size-5 text-neutral-500" />
-          </div>
-          <span class="text-sm font-semibold text-white px-3 truncate flex-1">
-            {{ song.Title }}
-          </span>
-          <!-- Play button on hover -->
-          <button
-            class="w-10 h-10 bg-primary-500 hover:bg-primary-400 rounded-full flex items-center justify-center mr-2 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all shadow-lg shadow-black/50 hover:scale-105 cursor-pointer"
-            @click.stop="playSong(song, recentSongs)"
-          >
-            <UIcon name="i-fa6-solid-play" class="size-3.5 text-white ml-0.5" />
-          </button>
-        </div>
-      </div>
-    </div>
-
+  <div
+    class="min-h-screen pb-8 bg-gradient-to-b px-4 from-[#121212] to-[#1e1e1e]"
+  >
     <!-- Recommended Songs Section -->
     <section v-if="recommendedSongs.length > 0" class="mt-8 px-2">
       <div class="flex items-center justify-between mb-4">
@@ -68,13 +17,11 @@
           {{ t("home.show_all") }}
         </NuxtLink>
       </div>
-      <div
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-      >
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
         <div
           v-for="song in recommendedSongs.slice(0, 6)"
           :key="song.Id"
-          class="group hover:bg-[#282828] rounded-lg p-4 transition-all duration-300 cursor-pointer"
+          class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
           @click="playSong(song, recommendedSongs)"
         >
           <div class="relative mb-4">
@@ -122,14 +69,12 @@
           {{ t("home.show_all") }}
         </NuxtLink>
       </div>
-      <div
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-      >
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
         <NuxtLink
           v-for="album in recommendedAlbums.slice(0, 6)"
           :key="album.AlbumId"
           :to="`/user/my-albums/${album.AlbumId}`"
-          class="group hover:bg-[#282828] rounded-lg p-4 transition-all duration-300 cursor-pointer"
+          class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
         >
           <div class="relative mb-4">
             <img
@@ -176,13 +121,11 @@
           {{ t("home.show_all") }}
         </NuxtLink>
       </div>
-      <div
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-      >
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
         <div
           v-for="artist in artists.slice(0, 6)"
           :key="artist.Id || artist.ArtistId"
-          class="group hover:bg-[#282828] rounded-lg p-4 transition-all duration-300 cursor-pointer"
+          class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
         >
           <div class="relative mb-4">
             <img
@@ -228,13 +171,11 @@
           {{ t("home.show_all") }}
         </NuxtLink>
       </div>
-      <div
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-      >
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
         <div
           v-for="song in allSongs.slice(0, 12)"
           :key="song.Id"
-          class="group hover:bg-[#282828] rounded-lg p-4 transition-all duration-300 cursor-pointer"
+          class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
           @click="playSong(song, allSongs)"
         >
           <div class="relative mb-4">
@@ -282,14 +223,12 @@
           {{ t("home.show_all") }}
         </NuxtLink>
       </div>
-      <div
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-      >
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
         <NuxtLink
           v-for="album in allAlbums.slice(0, 6)"
           :key="album.AlbumId"
           :to="`/user/my-albums/${album.AlbumId}`"
-          class="group hover:bg-[#282828] rounded-lg p-4 transition-all duration-300 cursor-pointer"
+          class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
         >
           <div class="relative mb-4">
             <img
@@ -367,14 +306,6 @@ const allSongs = ref([]);
 const allAlbums = ref([]);
 const artists = ref([]);
 
-// Greeting based on time of day
-const greeting = computed(() => {
-  const hour = new Date().getHours();
-  if (hour < 12) return t("home.good_morning");
-  if (hour < 18) return t("home.good_afternoon");
-  return t("home.good_evening");
-});
-
 // Play a song and set queue
 const playSong = (song, queue) => {
   const index = queue.findIndex((s) => s.Id === song.Id);
@@ -433,7 +364,6 @@ const fetchData = async () => {
       }
     }
   } catch (error) {
-    console.error("Error fetching home data:", error);
   } finally {
     isLoading.value = false;
   }

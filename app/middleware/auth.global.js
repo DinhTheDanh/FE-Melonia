@@ -53,16 +53,13 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
             // Continue to the route
             return;
           }
-        } catch (refreshError) {
-          console.error("Token refresh failed in middleware:", refreshError);
-        }
+        } catch (refreshError) {}
 
         // Refresh failed, clear token and redirect to login
         document.cookie = "jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         return navigateTo("/auth/login");
       }
     } catch (error) {
-      console.error("Token validation failed:", error);
       // Invalid token format, redirect to login
       return navigateTo("/auth/login");
     }

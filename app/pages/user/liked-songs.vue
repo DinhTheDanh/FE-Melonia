@@ -55,9 +55,14 @@
       <!-- Big Play Button -->
       <button
         class="w-14 h-14 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg shadow-black/40 cursor-pointer"
-        @click="playAllLiked"
+        @click="togglePlayAllLiked"
       >
-        <UIcon name="i-fa6-solid-play" class="size-6 text-white ml-1" />
+        <UIcon
+          v-if="isPlayingLikedSongs"
+          name="i-fa6-solid-pause"
+          class="size-6 text-white"
+        />
+        <UIcon v-else name="i-fa6-solid-play" class="size-6 text-white ml-1" />
       </button>
 
       <!-- Shuffle Button -->
@@ -98,17 +103,53 @@
         v-for="(song, index) in songs"
         :key="song.Id || song.SongId"
         class="group grid grid-cols-[40px_1fr_1fr_100px] gap-4 px-4 py-2 rounded-md hover:bg-white/10 transition-colors items-center cursor-pointer"
+        :class="{
+          'bg-white/5': likedDragOverIdx === index,
+          'opacity-50': likedDragIdx === index,
+        }"
+        draggable="true"
+        @dragstart="onLikedDragStart($event, index)"
+        @dragover.prevent
+        @dragenter.prevent="likedDragOverIdx = index"
+        @dragleave="likedDragOverIdx = null"
+        @drop.prevent="onLikedDrop($event, index)"
+        @dragend="onLikedDragEnd"
         @click="playSong(song, index)"
       >
-        <!-- Index / Play icon -->
-        <div class="flex items-center justify-center">
-          <span class="text-neutral-400 text-sm group-hover:hidden">
-            {{ index + 1 }}
-          </span>
-          <UIcon
-            name="i-fa6-solid-play"
-            class="size-3 text-white hidden group-hover:block"
-          />
+        <!-- Index / Play / Pause / Equalizer -->
+        <div class="flex items-center justify-center w-5 h-5">
+          <!-- When not hovering -->
+          <template v-if="isCurrentTrack(song)">
+            <!-- Currently playing track: show equalizer or paused bars -->
+            <div
+              class="equalizer group-hover:hidden!"
+              :class="{ paused: !playerStore.isPlaying }"
+            >
+              <span class="equalizer-bar"></span>
+              <span class="equalizer-bar"></span>
+              <span class="equalizer-bar"></span>
+              <span class="equalizer-bar"></span>
+            </div>
+          </template>
+          <template v-else>
+            <!-- Not current track: show index -->
+            <span class="text-neutral-400 text-sm group-hover:hidden">
+              {{ index + 1 }}
+            </span>
+          </template>
+
+          <!-- When hovering: show play/pause button -->
+          <button
+            class="hidden group-hover:flex items-center justify-center"
+            @click.stop="togglePlaySong(song, index)"
+          >
+            <UIcon
+              v-if="isCurrentTrack(song) && playerStore.isPlaying"
+              name="i-fa6-solid-pause"
+              class="size-4 text-white"
+            />
+            <UIcon v-else name="i-fa6-solid-play" class="size-4 text-white" />
+          </button>
         </div>
 
         <!-- Title & Artist -->
@@ -133,7 +174,11 @@
               {{ song.Title }}
             </p>
             <p class="text-xs text-neutral-400 truncate">
-              {{ song.ArtistNames || t("home.unknown_artist") }}
+              {{
+                song.ArtistNames?.trim() ||
+                song.ArtistName?.trim() ||
+                t("home.unknown_artist")
+              }}
             </p>
           </div>
         </div>
@@ -148,14 +193,14 @@
         </div>
 
         <!-- Duration + Actions -->
-        <div class="flex items-center justify-end gap-3">
-          <!-- Unlike button -->
-          <button
-            class="p-1 text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:text-primary-400"
-            @click.stop="handleUnlike(song)"
-          >
-            <UIcon name="i-lucide-heart" class="size-4 fill-current" />
-          </button>
+        <div class="flex items-center justify-end gap-2">
+          <!-- Context Menu -->
+          <SongContextMenu
+            :song="song"
+            :show-like-option="false"
+            :show-go-to-album="!!song.AlbumId"
+            @unlike="handleUnlike"
+          />
           <span class="text-sm text-neutral-400 tabular-nums">
             {{ formatDuration(song.Duration) }}
           </span>
@@ -208,9 +253,42 @@ const userData = ref(null);
 const isScrolled = ref(false);
 const actionBarRef = ref(null);
 
+// Drag & drop
+const likedDragIdx = ref(null);
+const likedDragOverIdx = ref(null);
+
+const onLikedDragStart = (e, index) => {
+  likedDragIdx.value = index;
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", index.toString());
+};
+
+const onLikedDrop = (e, toIndex) => {
+  const fromIndex = likedDragIdx.value;
+  if (fromIndex !== null && fromIndex !== toIndex) {
+    const [item] = songs.value.splice(fromIndex, 1);
+    songs.value.splice(toIndex, 0, item);
+  }
+  likedDragIdx.value = null;
+  likedDragOverIdx.value = null;
+};
+
+const onLikedDragEnd = () => {
+  likedDragIdx.value = null;
+  likedDragOverIdx.value = null;
+};
+
 const hasMore = computed(
   () => songs.value.length < totalCount.value && !isLoading.value,
 );
+
+// Check if currently playing a song from liked songs
+const isPlayingLikedSongs = computed(() => {
+  if (!playerStore.currentTrack || !playerStore.isPlaying) return false;
+  const currentId =
+    playerStore.currentTrack.Id || playerStore.currentTrack.SongId;
+  return songs.value.some((s) => (s.Id || s.SongId) === currentId);
+});
 
 const isCurrentTrack = (song) => {
   if (!playerStore.currentTrack) return false;
@@ -231,9 +309,27 @@ const playSong = (song, index) => {
   playerStore.playTrack(song, songs.value, index);
 };
 
+const togglePlaySong = (song, index) => {
+  if (isCurrentTrack(song)) {
+    // Toggle play/pause for current track
+    playerStore.togglePlay();
+  } else {
+    // Play this song
+    playerStore.playTrack(song, songs.value, index);
+  }
+};
+
 const playAllLiked = () => {
   if (songs.value.length > 0) {
     playerStore.playTrack(songs.value[0], songs.value, 0);
+  }
+};
+
+const togglePlayAllLiked = () => {
+  if (isPlayingLikedSongs.value) {
+    playerStore.togglePlay();
+  } else {
+    playAllLiked();
   }
 };
 
@@ -297,6 +393,11 @@ onMounted(() => {
   fetchLikedSongs();
   fetchUserData();
 
+  // Also fetch store to sync liked status
+  if (!likedSongsStore.isLoaded) {
+    likedSongsStore.fetchLikedSongs();
+  }
+
   nextTick(() => {
     const scrollContainer = document.querySelector(".flex-1.overflow-y-auto");
     if (scrollContainer) {
@@ -304,6 +405,28 @@ onMounted(() => {
     }
   });
 });
+
+// Watch for changes in likedSongsStore (when user likes/unlikes from other pages)
+watch(
+  () => likedSongsStore.likedSongs,
+  (newLikedSongs) => {
+    if (newLikedSongs && newLikedSongs.length > 0) {
+      // Sync local songs with store
+      // Only update if we have loaded initial data
+      if (!isLoading.value) {
+        // Get current song IDs from store
+        const storeIds = new Set(newLikedSongs.map((s) => s.Id || s.SongId));
+
+        // Remove songs that are no longer liked
+        songs.value = songs.value.filter((s) => storeIds.has(s.Id || s.SongId));
+
+        // Update total count
+        totalCount.value = likedSongsStore.totalCount;
+      }
+    }
+  },
+  { deep: true },
+);
 
 onUnmounted(() => {
   const scrollContainer = document.querySelector(".flex-1.overflow-y-auto");

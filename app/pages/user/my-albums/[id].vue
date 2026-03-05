@@ -131,9 +131,9 @@
 
               <!-- Metadata -->
               <div class="flex flex-col gap-2 pb-2">
-                <span class="text-xs font-bold uppercase tracking-wider"
-                  >Album</span
-                >
+                <span class="text-xs font-bold uppercase tracking-wider">{{
+                  $t("album.type_label")
+                }}</span>
                 <h1 class="text-6xl font-black tracking-tight">
                   {{ album.Title }}
                 </h1>
@@ -157,11 +157,17 @@
               <button
                 class="w-14 h-14 bg-purple-500 hover:bg-purple-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="songs.length === 0"
-                @click="playAll"
+                @click="togglePlayAll"
               >
                 <UIcon
+                  v-if="isPlayingThisAlbum"
+                  name="i-fa6-solid-pause"
+                  class="size-6 text-white"
+                />
+                <UIcon
+                  v-else
                   name="i-fa6-solid-play"
-                  class="size-6 text-black ml-0.5"
+                  class="size-6 text-white ml-0.5"
                 />
               </button>
 
@@ -278,19 +284,55 @@
                 v-for="(song, index) in filteredSongs"
                 :key="song.SongId"
                 class="group grid grid-cols-[16px_minmax(200px,4fr)_minmax(120px,1fr)_60px_40px] gap-4 px-4 py-2 rounded-md hover:bg-white/10 transition-colors items-center"
+                :class="{
+                  'bg-white/5': albumDragOverIdx === index,
+                  'opacity-50': albumDragIdx === index,
+                }"
+                draggable="true"
+                @dragstart="onAlbumDragStart($event, index)"
+                @dragover.prevent
+                @dragenter.prevent="albumDragOverIdx = index"
+                @dragleave="albumDragOverIdx = null"
+                @drop.prevent="onAlbumDrop($event, index)"
+                @dragend="onAlbumDragEnd"
               >
-                <!-- # / Play -->
-                <div class="flex items-center justify-center relative">
+                <!-- # / Play / Pause / Equalizer -->
+                <div class="flex items-center justify-center w-5 h-5">
+                  <!-- Current track: show equalizer (hide on hover) -->
+                  <template v-if="isCurrentTrack(song)">
+                    <div
+                      class="equalizer group-hover:hidden!"
+                      :class="{ paused: !playerStore.isPlaying }"
+                    >
+                      <span class="equalizer-bar"></span>
+                      <span class="equalizer-bar"></span>
+                      <span class="equalizer-bar"></span>
+                      <span class="equalizer-bar"></span>
+                    </div>
+                  </template>
+                  <!-- Not current track: show index -->
                   <span
-                    class="text-sm text-neutral-400 group-hover:opacity-0 transition-opacity"
+                    v-else
+                    class="text-sm text-neutral-400 group-hover:hidden"
                   >
                     {{ index + 1 }}
                   </span>
+
+                  <!-- On hover: show play/pause button -->
                   <button
-                    class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-none outline-none bg-transparent"
-                    @click="playSong(song)"
+                    class="hidden group-hover:flex items-center justify-center"
+                    @click.stop="togglePlaySong(song)"
                   >
-                    <UIcon name="i-fa6-solid-play" class="size-4 text-white" />
+                    <UIcon
+                      v-if="isCurrentTrack(song) && playerStore.isPlaying"
+                      name="i-fa6-solid-pause"
+                      class="size-4 text-white"
+                    />
+                    <UIcon
+                      v-else
+                      name="i-fa6-solid-play"
+                      class="size-4 text-white"
+                    />
                   </button>
                 </div>
 
@@ -319,7 +361,12 @@
 
                   <!-- Title & Artist -->
                   <div class="min-w-0 flex-1">
-                    <p class="text-white text-sm font-medium truncate">
+                    <p
+                      class="text-sm font-medium truncate"
+                      :class="
+                        isCurrentTrack(song) ? 'text-purple-500' : 'text-white'
+                      "
+                    >
                       {{ song.Title }}
                     </p>
                     <p
@@ -340,27 +387,38 @@
                   {{ formatDuration(song.Duration) }}
                 </div>
 
-                <!-- More button with dropdown -->
-                <div v-if="isOwner" class="flex items-center justify-center">
-                  <UDropdownMenu
-                    :items="[
-                      {
-                        label: $t('album.remove_from_album'),
-                        icon: 'i-lucide-x',
-                        color: 'error',
-                        onSelect: () => openRemoveSongConfirm(song),
-                      },
-                    ]"
+                <!-- More button with SongContextMenu -->
+                <div class="flex items-center justify-center">
+                  <SongContextMenu
+                    :song="song"
+                    :is-owner="isOwner"
+                    :show-edit="false"
+                    :show-delete="false"
+                    :show-go-to-album="false"
+                    @removed-from-playlist="openRemoveSongConfirm"
                   >
-                    <button
-                      class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                    >
-                      <UIcon
-                        name="i-lucide-more-horizontal"
-                        class="size-5 text-neutral-400 hover:text-white"
-                      />
-                    </button>
-                  </UDropdownMenu>
+                    <template #default>
+                      <button
+                        class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      >
+                        <UIcon
+                          name="i-lucide-more-horizontal"
+                          class="size-5 text-neutral-400 hover:text-white"
+                        />
+                      </button>
+                    </template>
+                  </SongContextMenu>
+                  <!-- Remove from album button for owner -->
+                  <button
+                    v-if="isOwner"
+                    class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ml-1"
+                    @click.stop="openRemoveSongConfirm(song)"
+                  >
+                    <UIcon
+                      name="i-lucide-x"
+                      class="size-4 text-neutral-400 hover:text-red-400"
+                    />
+                  </button>
                 </div>
               </div>
             </div>
@@ -823,6 +881,24 @@ const formatRelativeDate = (date) => {
   return d.toLocaleDateString("vi-VN");
 };
 
+// Check if currently playing a song from this album
+const isPlayingThisAlbum = computed(() => {
+  if (!playerStore.currentTrack || !playerStore.isPlaying) return false;
+  const currentId =
+    playerStore.currentTrack.Id || playerStore.currentTrack.SongId;
+  return songs.value.some((s) => (s.SongId || s.Id || s.songId) === currentId);
+});
+
+// Check if a specific song is the current track
+const isCurrentTrack = (song) => {
+  if (!playerStore.currentTrack) return false;
+  const songId = song.SongId || song.Id || song.songId;
+  return (
+    playerStore.currentTrack.Id === songId ||
+    playerStore.currentTrack.SongId === songId
+  );
+};
+
 const playAll = () => {
   if (songs.value.length === 0) return;
   // Map songs to the format expected by player store
@@ -835,6 +911,14 @@ const playAll = () => {
     Duration: song.Duration,
   }));
   playerStore.playTrack(queue[0], queue, 0);
+};
+
+const togglePlayAll = () => {
+  if (isPlayingThisAlbum.value) {
+    playerStore.togglePlay();
+  } else {
+    playAll();
+  }
 };
 
 const playSong = (song) => {
@@ -855,6 +939,14 @@ const playSong = (song) => {
   }));
   // Play the clicked song with the full queue
   playerStore.playTrack(queue[index], queue, index);
+};
+
+const togglePlaySong = (song) => {
+  if (isCurrentTrack(song)) {
+    playerStore.togglePlay();
+  } else {
+    playSong(song);
+  }
 };
 
 // Add Songs Modal
