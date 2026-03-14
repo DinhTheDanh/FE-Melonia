@@ -120,7 +120,7 @@ const playArtist = async (artist) => {
   try {
     const res = await artistApi.getSongsByArtistId(artistId, {
       pageIndex: 1,
-      pageSize: 50,
+      pageSize: 20,
     });
     const artistSongs = res?.Data || res?.Items || res || [];
     if (artistSongs.length > 0) {
@@ -133,7 +133,7 @@ const playArtist = async (artist) => {
 
 onMounted(async () => {
   try {
-    const res = await artistApi.getArtists({ pageIndex: 1, pageSize: 50 });
+    const res = await artistApi.getArtists({ pageIndex: 1, pageSize: 20 });
     artists.value = res.Data || res || [];
   } catch (error) {
     console.error("Error fetching artists:", error);

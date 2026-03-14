@@ -147,7 +147,7 @@ onMounted(async () => {
       );
       albums.value = res.Data || res || [];
     } else {
-      const res = await musicApi.getAlbums({ pageIndex: 1, pageSize: 50 });
+      const res = await musicApi.getAlbums({ pageIndex: 1, pageSize: 20 });
       albums.value = res.Data || res || [];
     }
   } catch (error) {

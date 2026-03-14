@@ -42,52 +42,52 @@
     </div>
 
     <!-- Action Bar -->
-    <div class="flex items-center gap-6 px-8 py-4">
-      <!-- Large Play Button -->
-      <button
-        class="w-14 h-14 bg-purple-500 hover:bg-purple-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer"
-        @click="togglePlayAll"
-      >
-        <UIcon
-          v-if="isPlayingMyMusic"
-          name="i-fa6-solid-pause"
-          class="size-6 text-white"
-        />
-        <UIcon
-          v-else
-          name="i-fa6-solid-play"
-          class="size-6 text-white ml-0.5"
-        />
-      </button>
+    <div class="flex items-center gap-5 px-8 py-4">
+      <div class="flex-1 relative h-14">
+        <div
+          v-if="selectedSongs.length === 0"
+          class="absolute inset-0 flex items-center gap-3"
+        >
+          <!-- Upload Button -->
+          <NuxtLink to="/create/song">
+            <button
+              class="p-2 text-neutral-400 hover:text-white hover:scale-110 transition-all cursor-pointer"
+            >
+              <UIcon name="i-lucide-plus-circle" class="size-7" />
+            </button>
+          </NuxtLink>
+        </div>
 
-      <!-- Shuffle -->
-      <button class="p-2 hover:scale-110 transition-transform cursor-pointer">
-        <UIcon
-          name="i-lucide-shuffle"
-          class="size-8 text-neutral-400 hover:text-white transition-colors"
-        />
-      </button>
-
-      <!-- Upload Button -->
-      <NuxtLink to="/create/song">
-        <button class="p-2 hover:scale-110 transition-transform cursor-pointer">
-          <UIcon
-            name="i-lucide-plus-circle"
-            class="size-8 text-neutral-400 hover:text-white transition-colors"
+        <div v-else class="absolute inset-0 flex items-center gap-3 px-2">
+          <UCheckbox
+            :model-value="isAllSelected"
+            :indeterminate="isIndeterminate"
+            @update:model-value="toggleSelectAll"
+            :ui="{ base: 'cursor-pointer' }"
           />
-        </button>
-      </NuxtLink>
-
-      <!-- More Options -->
-      <button class="p-2 hover:scale-110 transition-transform cursor-pointer">
-        <UIcon
-          name="i-lucide-more-horizontal"
-          class="size-8 text-neutral-400 hover:text-white transition-colors"
-        />
-      </button>
+          <span class="text-sm text-white font-semibold">
+            {{ selectedSongs.length }} {{ $t("song.selected") }}
+          </span>
+          <button
+            class="text-sm text-purple-500 hover:text-purple-400 cursor-pointer transition-colors"
+            @click="selectedSongs = []"
+          >
+            {{ $t("song.deselect_all") }}
+          </button>
+          <div class="flex items-center gap-2 ml-auto">
+            <button
+              class="flex items-center gap-2 px-2 py-1 text-sm text-neutral-200 hover:text-white transition-colors cursor-pointer"
+              @click="openBulkDeleteConfirm"
+            >
+              <UIcon name="i-lucide-trash-2" class="size-4 text-red-400" />
+              {{ $t("song.delete") }}
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Search (Right aligned) -->
-      <div class="ml-auto relative">
+      <div class="relative">
         <div
           class="flex items-center transition-all duration-300"
           :class="isSearchFocused ? 'w-64' : 'w-48'"
@@ -152,50 +152,14 @@
 
       <!-- Songs List -->
       <div v-else>
-        <!-- Selection Bar (Fixed when items selected) -->
-        <Transition name="slide-down">
-          <div
-            v-if="selectedSongs.length > 0"
-            class="sticky top-0 z-10 bg-[#1a1a1a] border-b border-white/10 px-4 py-3 mb-4 rounded-lg flex items-center gap-4"
-          >
-            <UCheckbox
-              :model-value="isAllSelected"
-              :indeterminate="isIndeterminate"
-              @update:model-value="toggleSelectAll"
-              :ui="{ base: 'cursor-pointer' }"
-            />
-            <span class="text-sm text-white font-medium">
-              {{ selectedSongs.length }} {{ $t("song.selected") }}
-            </span>
-            <button
-              class="text-sm text-purple-500 hover:text-purple-400 cursor-pointer transition-colors"
-              @click="selectedSongs = []"
-            >
-              {{ $t("song.deselect_all") }}
-            </button>
-            <div class="flex items-center gap-2 ml-auto">
-              <button
-                class="flex items-center gap-2 px-4 py-1.5 text-sm text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-                @click="openBulkDeleteConfirm"
-              >
-                <UIcon name="i-lucide-trash-2" class="size-4 text-red-400" />
-                {{ $t("song.delete") }}
-              </button>
-            </div>
-          </div>
-        </Transition>
-
         <!-- Table Header -->
         <div
-          class="grid grid-cols-[40px_1fr_1fr_minmax(80px,100px)_70px_60px_40px] gap-4 px-4 py-2 border-b border-white/10 text-xs uppercase tracking-wider text-neutral-400 sticky top-0 bg-[#121212] z-5"
+          class="grid grid-cols-[28px_1fr_1fr_minmax(80px,100px)_60px_40px] gap-4 px-4 py-2 border-b border-white/10 text-xs uppercase tracking-wider text-neutral-400 sticky top-0 bg-[#121212] z-5"
         >
-          <div class="text-center">#</div>
+          <div></div>
           <div>{{ $t("song.song_title") }}</div>
           <div>{{ $t("song.album") }}</div>
           <div>{{ $t("song.date_added") }}</div>
-          <div class="text-center">
-            <UIcon name="i-lucide-headphones" class="size-4" />
-          </div>
           <div class="text-center">
             <UIcon name="i-lucide-clock" class="size-4" />
           </div>
@@ -206,9 +170,9 @@
         <div class="mt-2">
           <div
             v-for="(song, index) in paginatedSongs"
-            :key="song.SongId"
-            class="group grid grid-cols-[40px_1fr_1fr_minmax(80px,100px)_70px_60px_40px] gap-4 px-4 py-2 rounded-md hover:bg-white/10 transition-colors items-center"
-            :class="{ 'bg-white/5': selectedSongs.includes(song.SongId) }"
+            :key="getSongId(song) || index"
+            class="group grid grid-cols-[28px_1fr_1fr_minmax(80px,100px)_60px_40px] gap-4 px-4 py-2 rounded-md hover:bg-white/10 transition-colors items-center"
+            :class="{ 'bg-white/5': selectedSongs.includes(getSongId(song)) }"
           >
             <!-- # / Play / Checkbox / Equalizer -->
             <div class="flex items-center justify-center relative w-5 h-5">
@@ -216,60 +180,19 @@
               <div
                 :class="[
                   'absolute inset-0 flex items-center justify-center transition-opacity z-10',
-                  selectedSongs.includes(song.SongId) ||
+                  selectedSongs.includes(getSongId(song)) ||
                   selectedSongs.length > 0
                     ? 'opacity-100'
                     : 'opacity-0 group-hover:opacity-100',
                 ]"
               >
                 <UCheckbox
-                  :model-value="selectedSongs.includes(song.SongId)"
-                  @update:model-value="toggleSelectSong(song.SongId)"
+                  :model-value="selectedSongs.includes(getSongId(song))"
+                  @update:model-value="toggleSelectSong(getSongId(song))"
                   @click.stop
                   :ui="{ base: 'cursor-pointer' }"
                 />
               </div>
-
-              <!-- Current track: show equalizer (hide when checkbox or hover) -->
-              <template
-                v-if="isCurrentTrack(song) && selectedSongs.length === 0"
-              >
-                <div
-                  class="equalizer group-hover:hidden!"
-                  :class="{ paused: !playerStore.isPlaying }"
-                >
-                  <span class="equalizer-bar"></span>
-                  <span class="equalizer-bar"></span>
-                  <span class="equalizer-bar"></span>
-                  <span class="equalizer-bar"></span>
-                </div>
-              </template>
-
-              <!-- Number (hide when checkbox shown or current track) -->
-              <span
-                v-else-if="selectedSongs.length === 0"
-                class="text-sm text-neutral-400 group-hover:hidden"
-              >
-                {{ (currentPage - 1) * itemsPerPage + index + 1 }}
-              </span>
-
-              <!-- Play/Pause button (show on hover when no selection) -->
-              <button
-                v-if="selectedSongs.length === 0"
-                class="hidden group-hover:flex items-center justify-center"
-                @click.stop="togglePlaySong(song)"
-              >
-                <UIcon
-                  v-if="isCurrentTrack(song) && playerStore.isPlaying"
-                  name="i-fa6-solid-pause"
-                  class="size-4 text-white"
-                />
-                <UIcon
-                  v-else
-                  name="i-fa6-solid-play"
-                  class="size-4 text-white"
-                />
-              </button>
             </div>
 
             <!-- Title + Artist -->
@@ -303,11 +226,33 @@
                 >
                   {{ song.Title }}
                 </p>
-                <p
-                  class="text-neutral-400 text-xs truncate hover:text-white hover:underline cursor-pointer"
-                >
-                  {{ song.ArtistNames || "-" }}
-                </p>
+                <div class="text-xs truncate">
+                  <template v-if="getSongArtists(song).length > 0">
+                    <template
+                      v-for="(artist, artistIndex) in getSongArtists(song)"
+                      :key="`${song.SongId || song.Id || index}-${artist.id || artist.name}-${artistIndex}`"
+                    >
+                      <NuxtLink
+                        v-if="artist.id"
+                        :to="`/artist/${artist.id}`"
+                        class="text-neutral-400 hover:text-white hover:underline"
+                        @click.stop
+                      >
+                        {{ artist.name }}
+                      </NuxtLink>
+                      <span v-else class="text-neutral-400">
+                        {{ artist.name }}
+                      </span>
+                      <span
+                        v-if="artistIndex < getSongArtists(song).length - 1"
+                        class="text-neutral-500"
+                      >
+                        ,
+                      </span>
+                    </template>
+                  </template>
+                  <span v-else class="text-neutral-400">-</span>
+                </div>
               </div>
             </div>
 
@@ -322,16 +267,6 @@
             <div class="text-neutral-400 text-sm">
               {{ formatRelativeDate(song.CreatedAt) }}
             </div>
-
-            <!-- Listen Count -->
-            <div
-              v-if="song.ListenCount"
-              class="flex items-center gap-1 text-xs text-neutral-500"
-            >
-              <UIcon name="i-lucide-headphones" class="size-3" />
-              {{ formatNumber(song.ListenCount) }}
-            </div>
-            <div v-else></div>
 
             <!-- Duration -->
             <div class="text-neutral-400 text-sm text-center">
@@ -616,6 +551,7 @@ import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useDominantColor } from "~/composables/useDominantColor";
 import musicApi from "~/api/musicApi";
 import fileApi from "~/api/fileApi";
+import userApi from "~/api/userApi";
 import { usePlayerStore } from "~/stores/usePlayerStore";
 import { formatNumber } from "~/utils/formatNumber";
 
@@ -624,11 +560,29 @@ const toast = useToast();
 const playerStore = usePlayerStore();
 const { user } = useAuth();
 
+const isArtistOrAdminRole = (role) => {
+  const normalizedRole = String(role || "")
+    .trim()
+    .toLowerCase();
+  if (!normalizedRole) return false;
+  return normalizedRole.includes("artist") || normalizedRole === "admin";
+};
+
 // Guard: redirect regular users away
 if (import.meta.client) {
-  const role = user.value?.role;
-  if (!role || role === "User") {
-    navigateTo("/");
+  const jwtRole = user.value?.role;
+  if (!isArtistOrAdminRole(jwtRole)) {
+    try {
+      const profile = await userApi.getUserInfo();
+      const profileRole = profile?.Role;
+      if (!isArtistOrAdminRole(profileRole)) {
+        navigateTo("/");
+      }
+    } catch {
+      if (jwtRole) {
+        navigateTo("/");
+      }
+    }
   }
 }
 
@@ -701,24 +655,28 @@ const paginatedSongs = computed(() => {
   return filteredSongs.value.slice(start, start + itemsPerPage.value);
 });
 
+const getSongId = (song) => {
+  return song?.SongId || song?.Id || song?.songId || null;
+};
+
 watch(itemsPerPage, () => (currentPage.value = 1));
 
 // Selection
 const isAllSelected = computed(() => {
   if (paginatedSongs.value.length === 0) return false;
   return paginatedSongs.value.every((s) =>
-    selectedSongs.value.includes(s.SongId),
+    selectedSongs.value.includes(getSongId(s)),
   );
 });
 
 const isIndeterminate = computed(() => {
-  const pageIds = paginatedSongs.value.map((s) => s.SongId);
+  const pageIds = paginatedSongs.value.map((s) => getSongId(s)).filter(Boolean);
   const selected = pageIds.filter((id) => selectedSongs.value.includes(id));
   return selected.length > 0 && selected.length < pageIds.length;
 });
 
 const toggleSelectAll = (value) => {
-  const pageIds = paginatedSongs.value.map((s) => s.SongId);
+  const pageIds = paginatedSongs.value.map((s) => getSongId(s)).filter(Boolean);
   if (value) {
     pageIds.forEach((id) => {
       if (!selectedSongs.value.includes(id)) selectedSongs.value.push(id);
@@ -731,6 +689,7 @@ const toggleSelectAll = (value) => {
 };
 
 const toggleSelectSong = (songId) => {
+  if (!songId) return;
   const index = selectedSongs.value.indexOf(songId);
   if (index > -1) {
     selectedSongs.value.splice(index, 1);
@@ -810,6 +769,55 @@ const formatRelativeDate = (date) => {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
+const normalizeArtistField = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item ?? "").trim())
+      .filter((item) => item.length > 0);
+  }
+
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  return String(value)
+    .split(/[;,|]/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+};
+
+const getSongArtists = (song) => {
+  if (!song) return [];
+
+  if (Array.isArray(song.Artists) && song.Artists.length > 0) {
+    const mapped = song.Artists.map((artist) => ({
+      id: artist?.UserId || artist?.Id || artist?.ArtistId || null,
+      name: artist?.FullName || artist?.Name || artist?.ArtistName || "Artist",
+    })).filter((artist) => artist.name && artist.name.trim().length > 0);
+
+    if (mapped.length > 0) return mapped;
+  }
+
+  const names = normalizeArtistField(song.ArtistNames || song.ArtistName);
+  const ids = normalizeArtistField(song.ArtistIds || song.ArtistId);
+
+  if (ids.length === 0) {
+    return names.map((name) => ({ id: null, name }));
+  }
+
+  const artists = ids.map((id, index) => ({
+    id,
+    name: names[index] || names[0] || "Artist",
+  }));
+
+  return artists.filter(
+    (artist, index, list) =>
+      list.findIndex(
+        (item) => item.id === artist.id && item.name === artist.name,
+      ) === index,
+  );
+};
+
 // Check if currently playing a song from my music
 const isPlayingMyMusic = computed(() => {
   if (!playerStore.currentTrack || !playerStore.isPlaying) return false;
@@ -827,6 +835,10 @@ const playAll = () => {
     Id: song.SongId || song.Id || song.songId,
     Title: song.Title,
     ArtistNames: song.ArtistNames || "Unknown Artist",
+    ArtistName: song.ArtistName,
+    ArtistId: song.ArtistId,
+    ArtistIds: song.ArtistIds,
+    Artists: song.Artists,
     Thumbnail: song.Thumbnail,
     FileUrl: song.FileUrl,
     Duration: song.Duration,
@@ -852,6 +864,10 @@ const playSong = (song) => {
     Id: s.SongId || s.Id || s.songId,
     Title: s.Title,
     ArtistNames: s.ArtistNames || "Unknown Artist",
+    ArtistName: s.ArtistName,
+    ArtistId: s.ArtistId,
+    ArtistIds: s.ArtistIds,
+    Artists: s.Artists,
     Thumbnail: s.Thumbnail,
     FileUrl: s.FileUrl,
     Duration: s.Duration,
@@ -962,16 +978,38 @@ const handleEditSave = async () => {
 
 // Delete
 const openDeleteConfirm = (song) => {
-  selectedSongToDelete.value = song;
+  const songId = getSongId(song);
+  if (!songId) {
+    toast.add({
+      title: t("song.error_title"),
+      description: t("song.delete_error"),
+      color: "red",
+    });
+    return;
+  }
+
+  selectedSongToDelete.value = { ...song, _resolvedSongId: songId };
   isDeleteConfirmOpen.value = true;
 };
 
 const handleDeleteSong = async () => {
   if (!selectedSongToDelete.value) return;
 
+  const songId =
+    selectedSongToDelete.value._resolvedSongId ||
+    getSongId(selectedSongToDelete.value);
+  if (!songId) {
+    toast.add({
+      title: t("song.error_title"),
+      description: t("song.delete_error"),
+      color: "red",
+    });
+    return;
+  }
+
   isDeleting.value = true;
   try {
-    await musicApi.deleteSong(selectedSongToDelete.value.SongId);
+    await musicApi.deleteSong(songId);
     toast.add({
       title: t("song.success_title"),
       description: t("song.delete_success"),

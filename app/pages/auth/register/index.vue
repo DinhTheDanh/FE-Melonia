@@ -23,7 +23,7 @@
         </h1>
       </div>
 
-      <!-- Steps 2-4 Header with progress bar -->
+      <!-- Steps 2-3 Header with progress bar -->
       <div v-else class="w-full mb-8">
         <div
           class="w-full h-1 bg-gray-700 mb-6 relative rounded-full overflow-hidden"
@@ -47,7 +47,7 @@
               {{
                 t("auth.register.step_counter", {
                   step: currentStep - 1,
-                  total: 3,
+                  total: 2,
                 })
               }}
             </p>
@@ -215,22 +215,15 @@
           </UButton>
         </div>
 
-        <!-- Step 3: Profile info -->
+        <!-- Step 3: Terms & Conditions -->
         <div v-else-if="currentStep === 3">
-          <UButton
-            type="submit"
-            block
-            size="xl"
-            color="primary"
-            class="rounded-full font-bold mt-8 hover:scale-105 transition-transform"
-          >
-            {{ t("auth.register.next") }}
-          </UButton>
-        </div>
-
-        <!-- Step 4: Terms & Conditions -->
-        <div v-else-if="currentStep === 4">
           <div class="bg-[#1a1a1a] p-4 rounded-lg space-y-4">
+            <UCheckbox
+              v-model="state.agree_terms"
+              name="agree_terms"
+              :label="t('auth.register.terms_text')"
+              :ui="{ label: 'text-white text-sm' }"
+            />
             <UCheckbox
               v-model="state.marketing"
               :label="t('auth.register.marketing_opt_out')"
@@ -241,10 +234,6 @@
               :label="t('auth.register.share_data_opt_in')"
               :ui="{ label: 'text-white text-sm' }"
             />
-          </div>
-
-          <div class="text-xs text-gray-400 mt-6">
-            <p>{{ t("auth.register.terms_text") }}</p>
           </div>
 
           <UButton
@@ -289,6 +278,7 @@ const state = reactive({
   email: "",
   password: "",
   name: "",
+  agree_terms: false,
   marketing: false,
   share_data: false,
 });
@@ -299,8 +289,7 @@ const schemas = computed(() => useRegisterSchema(t));
 const currentSchema = computed(() => {
   if (currentStep.value === 1) return schemas.value.step1;
   if (currentStep.value === 2) return schemas.value.step2;
-  if (currentStep.value === 3) return schemas.value.step3;
-  return schemas.value.step4;
+  return schemas.value.step3;
 });
 
 // Checklist hiển thị ở Bước 2
@@ -321,20 +310,18 @@ const passwordChecklist = computed(() => [
 
 const progressWidth = computed(() => {
   if (currentStep.value <= 1) return "0%";
-  if (currentStep.value === 2) return "33%";
-  if (currentStep.value === 3) return "66%";
+  if (currentStep.value === 2) return "50%";
   return "100%";
 });
 
 const stepTitle = computed(() => {
   if (currentStep.value === 2) return t("auth.register.password_title");
-  if (currentStep.value === 3) return t("auth.register.profile_title");
-  if (currentStep.value === 4) return t("auth.register.terms_title");
+  if (currentStep.value === 3) return t("auth.register.terms_title");
   return "";
 });
 
 const onNextStep = async () => {
-  if (currentStep.value < 4) {
+  if (currentStep.value < 3) {
     currentStep.value++;
   } else {
     await finalSubmit();

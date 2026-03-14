@@ -240,7 +240,7 @@ const fetchPlaylists = async () => {
   try {
     const res = await musicApi.getMyPlaylists({
       pageIndex: 1,
-      pageSize: 50,
+      pageSize: 20,
     });
     playlists.value = res.Data || res || [];
 

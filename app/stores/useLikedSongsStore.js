@@ -17,7 +17,7 @@ export const useLikedSongsStore = defineStore("likedSongs", {
   },
 
   actions: {
-    async fetchLikedSongs(params = { pageIndex: 1, pageSize: 50 }) {
+    async fetchLikedSongs(params = { pageIndex: 1, pageSize: 20 }) {
       this.isLoading = true;
       try {
         const res = await interactionApi.getLikedSongs(params);

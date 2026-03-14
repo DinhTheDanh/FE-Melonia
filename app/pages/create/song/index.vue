@@ -173,10 +173,9 @@
                 <USelectMenu
                   v-model="form.selectedArtists"
                   :items="allArtists"
-                  @click="fetchArtists"
+                  @click="fetchArtists()"
                   :placeholder="$t('song.artists_placeholder')"
                   multiple
-                  value-key="UserId"
                   label-key="FullName"
                   size="xl"
                   :ui="inputSpotifyStyle"
@@ -190,12 +189,16 @@
                   }"
                 >
                   <template #item="{ item }">
-                    <div class="flex items-center justify-around">
-                      <div class="flex items-center">
+                    <div class="flex items-center justify-between w-full">
+                      <div class="flex items-center min-w-0">
                         <UAvatar :src="item.Avatar" size="2xs" class="mr-2" />
                         <span class="truncate">{{ item.FullName }}</span>
                       </div>
-                      <UIcon :name="'i-lucide-tick'"></UIcon>
+                      <UIcon
+                        v-if="isArtistSelected(item)"
+                        name="i-lucide-check"
+                        class="size-4 text-[#1DB954]"
+                      />
                     </div>
                   </template>
                 </USelectMenu>
@@ -203,34 +206,97 @@
             </div>
           </div>
 
-          <UFormGroup
-            :label="$t('song.primary_genre')"
-            required
-            :ui="labelStyle"
-          >
-            <USelectMenu
-              v-model="form.selectedGenres"
-              multiple
-              :items="availableGenres"
-              label-key="Name"
-              value-key="Id"
-              :placeholder="$t('song.genre_placeholder')"
-              size="xl"
-              :ui="inputSpotifyStyle"
-              :ui-menu="{
-                background: 'bg-[#282828] border border-neutral-700',
-                option: { active: 'bg-[#3E3E3E]' },
-              }"
-              @click="fetchGenresIfNeeded"
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            <UFormGroup
+              :label="$t('song.primary_genre')"
+              required
+              :ui="labelStyle"
+              class="min-w-0"
             >
-              <template #item="{ item }">
-                <span class="truncate">{{ item.Name }}</span>
-              </template>
-            </USelectMenu>
-          </UFormGroup>
+              <USelectMenu
+                v-model="form.selectedGenres"
+                multiple
+                :items="availableGenres"
+                label-key="Name"
+                value-key="Id"
+                :placeholder="$t('song.genre_placeholder')"
+                size="xl"
+                :ui="inputSpotifyStyle"
+                :ui-menu="{
+                  background: 'bg-[#282828] border border-neutral-700',
+                  option: { active: 'bg-[#3E3E3E]' },
+                }"
+                @click="fetchGenresIfNeeded"
+              >
+                <template #item="{ item }">
+                  <div class="flex items-center justify-between w-full">
+                    <span class="truncate">{{ item.Name }}</span>
+                    <UIcon
+                      v-if="isGenreSelected(item)"
+                      name="i-lucide-check"
+                      class="size-4 text-[#1DB954]"
+                    />
+                  </div>
+                </template>
+              </USelectMenu>
+            </UFormGroup>
+
+            <UFormGroup
+              :label="$t('song.add_to_album')"
+              :ui="labelStyle"
+              class="min-w-0"
+            >
+              <USelectMenu
+                v-model="form.selectedAlbumId"
+                :items="myAlbums"
+                label-key="Title"
+                value-key="AlbumId"
+                :placeholder="$t('song.select_album')"
+                size="xl"
+                :ui="inputSpotifyStyle"
+                :ui-menu="{
+                  background: 'bg-[#282828] border border-neutral-700',
+                  option: { active: 'bg-[#3E3E3E]' },
+                }"
+                @click="fetchMyAlbums()"
+              >
+                <template #item="{ item }">
+                  <div class="flex items-center justify-between w-full gap-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <img
+                        v-if="item.Thumbnail"
+                        :src="item.Thumbnail"
+                        :alt="item.Title"
+                        class="size-7 rounded object-cover shrink-0"
+                      />
+                      <div
+                        v-else
+                        class="size-7 rounded bg-[#3E3E3E] flex items-center justify-center shrink-0"
+                      >
+                        <UIcon
+                          name="i-lucide-disc"
+                          class="size-4 text-neutral-400"
+                        />
+                      </div>
+                      <span class="truncate">{{ item.Title }}</span>
+                    </div>
+                    <UIcon
+                      v-if="isAlbumSelected(item)"
+                      name="i-lucide-check"
+                      class="size-4 text-[#1DB954]"
+                    />
+                  </div>
+                </template>
+              </USelectMenu>
+            </UFormGroup>
+          </div>
+
+          <p class="text-xs text-neutral-500 mt-1">
+            {{ $t("song.no_album_notice") }}
+          </p>
 
           <div
-            class="pt-8 mt-4 border-t border-white/10 flex items-center justify-end gap-4"
+            class="pt-4 mt-3 border-t border-white/10 flex items-center justify-end gap-4"
           >
             <div class="mr-auto text-xs text-neutral-500 max-w-xs">
               {{ $t("song.disclaimer") }}
@@ -250,13 +316,79 @@
                   },
                 },
               }"
-              @click="handleSubmit"
+              @click="openOwnershipModal"
             >
               {{ isSubmitting ? $t("song.uploading") : $t("song.upload_now") }}
             </UButton>
           </div>
         </div>
       </div>
+
+      <!-- OWNERSHIP CONFIRMATION MODAL -->
+      <Transition name="fade">
+        <div
+          v-if="showOwnershipModal"
+          class="fixed top-0 left-0 right-0 bottom-0 z-[998] w-full flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+        >
+          <div
+            class="w-full max-w-xl rounded-2xl bg-[#1f1f1f] border border-white/10 p-6 md:p-7 shadow-2xl"
+            :class="{ 'modal-shake': ownershipShake }"
+          >
+            <h3 class="text-lg md:text-xl font-bold text-white mb-3">
+              {{ $t("song.ownership_modal_title") }}
+            </h3>
+            <p
+              class="text-sm md:text-base text-neutral-300 leading-relaxed mb-5"
+            >
+              {{ $t("song.ownership_commitment") }}
+            </p>
+
+            <label
+              class="flex items-start gap-3 p-3 rounded-lg border border-white/10 bg-black/20 cursor-pointer"
+            >
+              <input
+                v-model="ownershipAccepted"
+                type="checkbox"
+                class="mt-1 size-4 accent-[#1DB954]"
+              />
+              <span class="text-sm text-white">
+                {{ $t("song.ownership_checkbox_label") }}
+              </span>
+            </label>
+
+            <p
+              v-if="ownershipShake && !ownershipAccepted"
+              class="text-xs text-red-400 mt-3"
+            >
+              {{ $t("song.ownership_required") }}
+            </p>
+
+            <div class="mt-6 flex items-center justify-end gap-3">
+              <UButton
+                color="gray"
+                variant="soft"
+                @click="showOwnershipModal = false"
+              >
+                {{ $t("song.cancel") }}
+              </UButton>
+              <UButton
+                color="primary"
+                class="font-bold"
+                :ui="{
+                  color: {
+                    primary: {
+                      solid: 'bg-[#1DB954] hover:bg-[#1ed760] text-black',
+                    },
+                  },
+                }"
+                @click="confirmOwnershipAndSubmit"
+              >
+                {{ $t("song.upload_now") }}
+              </UButton>
+            </div>
+          </div>
+        </div>
+      </Transition>
 
       <!-- UPLOAD TRACKING MODAL -->
       <Transition name="fade">
@@ -340,6 +472,7 @@ definePageMeta({ layout: "auth" });
 const currentUser = ref(null);
 const allArtists = ref([]);
 const availableGenres = ref([]);
+const myAlbums = ref([]);
 const isSubmitting = ref(false);
 const currentStep = ref(1);
 const isDragging = ref(false);
@@ -354,6 +487,9 @@ const showUploadTracker = ref(false);
 const uploadPercent = ref(0);
 const uploadFileInfo = ref("");
 const uploadFileSize = ref("");
+const showOwnershipModal = ref(false);
+const ownershipAccepted = ref(false);
+const ownershipShake = ref(false);
 
 // State form
 const form = reactive({
@@ -364,6 +500,7 @@ const form = reactive({
   title: "",
   selectedArtists: [],
   selectedGenres: [],
+  selectedAlbumId: null,
 });
 
 // Styles
@@ -381,8 +518,17 @@ onMounted(async () => {
     const userRes = await userApi.getUserInfo();
     currentUser.value = userRes;
     if (userRes) {
-      form.selectedArtists.push(userRes);
+      form.selectedArtists = [userRes];
+
+      if (
+        !allArtists.value.some((a) => getArtistId(a) === getArtistId(userRes))
+      ) {
+        allArtists.value = [userRes, ...allArtists.value];
+      }
     }
+
+    await fetchArtists();
+    await fetchMyAlbums();
   } catch (e) {}
 });
 
@@ -390,28 +536,51 @@ const fetchGenresIfNeeded = async () => {
   if (availableGenres.value.length === 0) {
     try {
       const res = await musicApi.getGenres();
-      availableGenres.value = res;
+      availableGenres.value = Array.isArray(res) ? res : res?.Data || [];
     } catch (e) {
       console.error("Lỗi Genre:", e);
     }
   }
 };
 
-const fetchArtists = async (q) => {
-  if (allArtists.value.length === 0) {
-    try {
-      const res = await artistApi.getArtists();
-      allArtists.value = res.Data;
-    } catch (e) {
-      console.error("Lỗi Artist:", e);
+const fetchMyAlbums = async () => {
+  try {
+    const res = await musicApi.getMyAlbums({ pageIndex: 1, pageSize: 100 });
+    myAlbums.value = Array.isArray(res?.Data) ? res.Data : [];
+  } catch (e) {
+    console.error("Lỗi My Albums:", e);
+  }
+};
+
+const fetchArtists = async (keyword = "") => {
+  const normalizedKeyword = typeof keyword === "string" ? keyword.trim() : "";
+
+  try {
+    const res = await artistApi.getArtists({
+      keyword: normalizedKeyword,
+      pageIndex: 1,
+      pageSize: 100,
+    });
+
+    const apiArtists = Array.isArray(res?.Data) ? res.Data : [];
+    const mergedArtists = [...apiArtists];
+
+    if (currentUser.value) {
+      const currentUserId = getArtistId(currentUser.value);
+      const existsInList = mergedArtists.some(
+        (artist) => getArtistId(artist) === currentUserId,
+      );
+      if (!existsInList) {
+        mergedArtists.unshift(currentUser.value);
+      }
     }
+
+    allArtists.value = mergedArtists;
+  } catch (e) {
+    console.error("Lỗi Artist:", e);
   }
 
-  // Sau đó filter client-side
-  if (!q) return allArtists.value;
-  return allArtists.value.filter((a) =>
-    a.FullName.toLowerCase().includes(q.toLowerCase()),
-  );
+  return allArtists.value;
 };
 
 const processAudio = (file) => {
@@ -516,6 +685,76 @@ const updateUploadStatus = (message, percent) => {
   uploadPercent.value = percent;
 };
 
+const getArtistId = (artist) => {
+  if (!artist) return null;
+  if (typeof artist === "string") return artist;
+  return artist.UserId || artist.user_id || artist.Id || artist.id || null;
+};
+
+const getGenreId = (genre) => {
+  if (!genre) return null;
+  if (typeof genre === "string") return genre;
+  return genre.Id || genre.id || genre.GenreId || genre.genre_id || null;
+};
+
+const selectedArtistIds = computed(() => {
+  return new Set(
+    form.selectedArtists.map((item) => getArtistId(item)).filter(Boolean),
+  );
+});
+
+const selectedGenreIds = computed(() => {
+  return new Set(
+    form.selectedGenres.map((item) => getGenreId(item)).filter(Boolean),
+  );
+});
+
+const selectedAlbumId = computed(() => {
+  if (!form.selectedAlbumId) return null;
+  if (typeof form.selectedAlbumId === "string") return form.selectedAlbumId;
+  return (
+    form.selectedAlbumId.AlbumId ||
+    form.selectedAlbumId.albumId ||
+    form.selectedAlbumId.Id ||
+    null
+  );
+});
+
+const isArtistSelected = (artist) => {
+  const artistId = getArtistId(artist);
+  return artistId ? selectedArtistIds.value.has(artistId) : false;
+};
+
+const isGenreSelected = (genre) => {
+  const genreId = getGenreId(genre);
+  return genreId ? selectedGenreIds.value.has(genreId) : false;
+};
+
+const isAlbumSelected = (album) => {
+  const albumId = album?.AlbumId || album?.albumId || album?.Id || null;
+  return albumId && selectedAlbumId.value === albumId;
+};
+
+const openOwnershipModal = () => {
+  if (isSubmitting.value || !isFormValid.value) return;
+  ownershipAccepted.value = false;
+  ownershipShake.value = false;
+  showOwnershipModal.value = true;
+};
+
+const confirmOwnershipAndSubmit = async () => {
+  if (!ownershipAccepted.value) {
+    ownershipShake.value = true;
+    setTimeout(() => {
+      ownershipShake.value = false;
+    }, 420);
+    return;
+  }
+
+  showOwnershipModal.value = false;
+  await handleSubmit();
+};
+
 const handleSubmit = async () => {
   if (isSubmitting.value) return;
 
@@ -544,8 +783,9 @@ const handleSubmit = async () => {
       Thumbnail: thumbnailUrl,
       Duration: Math.round(duration || form.duration),
       FileHash: fileHash,
-      ArtistIds: form.selectedArtists.map((u) => u.UserId || u.user_id),
-      GenreIds: form.selectedGenres,
+      ArtistIds: [...selectedArtistIds.value],
+      AlbumId: selectedAlbumId.value || null,
+      GenreIds: [...selectedGenreIds.value],
       Lyrics: "",
     };
 
@@ -586,7 +826,11 @@ const resetForm = () => {
   form.title = "";
   form.duration = 0;
   form.selectedGenres = [];
+  form.selectedAlbumId = null;
   form.selectedArtists = currentUser.value ? [currentUser.value] : [];
+  showOwnershipModal.value = false;
+  ownershipAccepted.value = false;
+  ownershipShake.value = false;
 };
 
 const isFormValid = computed(() => {
@@ -605,3 +849,28 @@ const formatDuration = (s) => {
   return `${m}:${sc.toString().padStart(2, "0")}`;
 };
 </script>
+
+<style scoped>
+@keyframes modal-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(8px);
+  }
+  60% {
+    transform: translateX(-6px);
+  }
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+.modal-shake {
+  animation: modal-shake 0.42s ease;
+}
+</style>

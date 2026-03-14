@@ -425,7 +425,7 @@ const fetchArtistData = async () => {
     // Fetch artist's songs
     const songsRes = await artistApi.getSongsByArtistId(artistId, {
       pageIndex: 1,
-      pageSize: 50,
+      pageSize: 20,
     });
     songs.value = songsRes?.Data || songsRes?.Items || songsRes || [];
 

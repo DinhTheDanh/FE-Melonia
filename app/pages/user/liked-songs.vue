@@ -221,14 +221,15 @@
           </p>
         </div>
 
-        <!-- Plays -->
-        <div v-if="song.ListenCount" class="hidden md:flex items-center gap-1 text-xs text-neutral-500">
-          <UIcon name="i-lucide-headphones" class="size-3" />
-          {{ formatNumber(song.ListenCount) }}
-        </div>
-
         <!-- Duration + Actions -->
         <div class="flex items-center justify-end gap-2">
+          <span
+            v-if="song.ListenCount"
+            class="hidden md:flex items-center gap-1 text-xs text-neutral-500 mr-1"
+          >
+            <UIcon name="i-lucide-headphones" class="size-3" />
+            {{ formatNumber(song.ListenCount) }}
+          </span>
           <!-- Context Menu -->
           <SongContextMenu
             :song="song"

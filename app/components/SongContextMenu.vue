@@ -4,7 +4,7 @@
     <slot :toggle="toggleMenu">
       <button
         class="p-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
-        @click.stop="toggleMenu"
+        @click.stop="toggleMenu($event)"
       >
         <UIcon name="i-lucide-more-horizontal" class="size-5" />
       </button>
@@ -204,8 +204,8 @@
                 class="absolute right-full top-0 mr-1 w-48 bg-[#282828] border border-white/5 rounded-md shadow-xl py-1 z-[10000]"
               >
                 <button
-                  v-for="artist in artistList"
-                  :key="artist.id"
+                  v-for="(artist, artistIndex) in artistList"
+                  :key="`${artist.id || artist.name}-${artistIndex}`"
                   class="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-200 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                   @click.stop="goToArtist(artist)"
                 >
@@ -282,6 +282,7 @@ import { useLikedSongsStore } from "~/stores/useLikedSongsStore";
 import { usePlayerStore } from "~/stores/usePlayerStore";
 import musicApi from "~/api/musicApi";
 import interactionApi from "~/api/interactionApi";
+import artistApi from "~/api/artistApi";
 
 const props = defineProps({
   song: { type: Object, required: true },
@@ -325,6 +326,7 @@ const isOpen = ref(false);
 const menuStyle = ref({});
 const showPlaylistSubmenu = ref(false);
 const showArtistSubmenu = ref(false);
+const lastTriggerRect = ref(null);
 
 const playlistSearch = ref("");
 const playlists = ref([]);
@@ -332,31 +334,37 @@ const isLoadingPlaylists = ref(false);
 const songInPlaylistIds = ref(new Set());
 
 // Toggle menu & position calculation
-const toggleMenu = () => {
+const toggleMenu = async (event) => {
   if (isOpen.value) {
     closeMenu();
     return;
   }
-  calculatePosition();
+
+  const eventRect = event?.currentTarget?.getBoundingClientRect?.();
+  lastTriggerRect.value = eventRect || null;
   isOpen.value = true;
+  await nextTick();
+  calculatePosition();
 };
 
 const calculatePosition = () => {
   if (!containerRef.value) return;
   const trigger =
     containerRef.value.querySelector("button") || containerRef.value;
-  const rect = trigger.getBoundingClientRect();
+  const rect = lastTriggerRect.value || trigger.getBoundingClientRect();
   const menuWidth = 256; // w-64 = 16rem = 256px
-  const menuHeight = 300; // approximate max height
-  const padding = 4;
+  const menuHeight = menuRef.value?.offsetHeight || 220;
+  const padding = 6;
+  const gap = 6;
 
-  let top = rect.bottom + padding;
-  let left = rect.left;
+  let top = rect.bottom + gap;
+  let left = rect.right - menuWidth;
 
   // If menu would overflow bottom, show above the trigger
-  if (top + menuHeight > window.innerHeight) {
-    top = Math.max(padding, rect.top - menuHeight - padding);
+  if (top + menuHeight > window.innerHeight - padding) {
+    top = rect.top - menuHeight - gap;
   }
+
   // Clamp to viewport
   if (top < padding) top = padding;
   if (top + menuHeight > window.innerHeight) {
@@ -428,10 +436,37 @@ const isInQueue = computed(() => {
   );
 });
 
-const hasArtist = computed(() => props.song?.ArtistId || props.song?.ArtistIds);
+const normalizeArtistField = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item ?? "").trim())
+      .filter((item) => item.length > 0);
+  }
+
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  return String(value)
+    .split(/[;,|]/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+};
 
 const artistList = computed(() => {
   const artists = [];
+
+  if (Array.isArray(props.song?.Artists) && props.song.Artists.length > 0) {
+    props.song.Artists.forEach((artist) => {
+      const id = artist?.UserId || artist?.Id || artist?.ArtistId || null;
+      const name =
+        artist?.FullName || artist?.Name || artist?.ArtistName || "Artist";
+      const key = `${id || ""}-${name}`;
+      if (!artists.some((a) => `${a.id || ""}-${a.name}` === key)) {
+        artists.push({ id, name });
+      }
+    });
+  }
 
   // Single artist
   if (props.song?.ArtistId) {
@@ -448,27 +483,33 @@ const artistList = computed(() => {
 
   // Multiple artists from ArtistIds
   if (props.song?.ArtistIds) {
-    const rawIds = props.song.ArtistIds;
-    const ids = Array.isArray(rawIds) ? rawIds : String(rawIds).split(",");
-    const rawNames = props.song.ArtistNames || "";
-    const names = Array.isArray(rawNames)
-      ? rawNames
-      : String(rawNames).split(",");
+    const ids = normalizeArtistField(props.song.ArtistIds);
+    const names = normalizeArtistField(
+      props.song.ArtistNames || props.song.ArtistName,
+    );
     ids.forEach((id, idx) => {
       const idStr = String(id).trim();
       if (!artists.find((a) => String(a.id) === idStr)) {
         artists.push({
           id: idStr,
-          name:
-            (Array.isArray(rawNames) ? names[idx] : names[idx]?.trim()) ||
-            "Artist",
+          name: names[idx] || names[0] || "Artist",
         });
       }
     });
   }
 
+  // Fallback from names only (no ids)
+  if (artists.length === 0) {
+    const names = normalizeArtistField(
+      props.song?.ArtistNames || props.song?.ArtistName,
+    );
+    names.forEach((name) => artists.push({ id: null, name }));
+  }
+
   return artists;
 });
+
+const hasArtist = computed(() => artistList.value.length > 0);
 
 const filteredPlaylists = computed(() => {
   let list = playlists.value.filter(
@@ -513,7 +554,7 @@ const fetchPlaylists = async () => {
   }
   isLoadingPlaylists.value = true;
   try {
-    const res = await musicApi.getMyPlaylists({ pageIndex: 1, pageSize: 50 });
+    const res = await musicApi.getMyPlaylists({ pageIndex: 1, pageSize: 20 });
     playlists.value = res.Data || res || [];
     await checkSongInPlaylists();
   } catch (error) {
@@ -653,9 +694,54 @@ const handleRemoveFromQueue = () => {
   closeMenu();
 };
 
-const goToArtist = (artist) => {
-  if (artist?.id) {
-    router.push(`/artist/${artist.id}`);
+const artistLookupCache = ref({});
+
+const resolveArtistId = async (artist) => {
+  const directId = artist?.id ? String(artist.id).trim() : "";
+  if (directId) return directId;
+
+  const name = String(artist?.name || "").trim();
+  if (!name) return null;
+
+  if (artistLookupCache.value[name]) {
+    return artistLookupCache.value[name];
+  }
+
+  try {
+    const res = await artistApi.getArtists({
+      keyword: name,
+      pageIndex: 1,
+      pageSize: 5,
+    });
+    const list = Array.isArray(res?.Data)
+      ? res.Data
+      : Array.isArray(res)
+        ? res
+        : [];
+    const matched =
+      list.find((item) => {
+        const fullName = String(
+          item?.FullName || item?.Name || "",
+        ).toLowerCase();
+        return fullName === name.toLowerCase();
+      }) || list[0];
+
+    const resolvedId =
+      matched?.UserId || matched?.Id || matched?.ArtistId || null;
+    if (!resolvedId) return null;
+
+    const id = String(resolvedId);
+    artistLookupCache.value[name] = id;
+    return id;
+  } catch (error) {
+    return null;
+  }
+};
+
+const goToArtist = async (artist) => {
+  const id = await resolveArtistId(artist);
+  if (id) {
+    router.push(`/artist/${id}`);
   }
   closeMenu();
 };

@@ -58,12 +58,35 @@
         >
           {{ song.Title }}
         </p>
-        <!-- Artist name on same line, separated - Spotify style -->
-        <p
-          class="text-xs text-neutral-400 truncate hover:text-white hover:underline cursor-pointer"
-        >
-          {{ artistName }}
-        </p>
+        <div class="text-xs truncate">
+          <template v-if="artistList.length > 0">
+            <template
+              v-for="(artist, artistIndex) in artistList"
+              :key="`${song.SongId || song.Id || index}-${artist.id || artist.name}-${artistIndex}`"
+            >
+              <NuxtLink
+                v-if="artist.id"
+                :to="`/artist/${artist.id}`"
+                class="text-neutral-400 hover:text-white hover:underline"
+                @click.stop
+              >
+                {{ artist.name }}
+              </NuxtLink>
+              <span v-else class="text-neutral-400">
+                {{ artist.name }}
+              </span>
+              <span
+                v-if="artistIndex < artistList.length - 1"
+                class="text-neutral-500"
+              >
+                ,
+              </span>
+            </template>
+          </template>
+          <span v-else class="text-neutral-400">
+            {{ t("home.unknown_artist") }}
+          </span>
+        </div>
       </div>
     </div>
 
@@ -112,12 +135,52 @@ defineEmits(["play", "toggle-play"]);
 
 const { t } = useI18n();
 
-// Computed artist name with fallbacks
-const artistName = computed(() => {
-  return (
-    props.song.ArtistNames?.trim() ||
-    props.song.ArtistName?.trim() ||
-    t("home.unknown_artist")
+const normalizeArtistField = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item ?? "").trim())
+      .filter((item) => item.length > 0);
+  }
+
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  return String(value)
+    .split(/[;,|]/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+};
+
+const artistList = computed(() => {
+  if (Array.isArray(props.song.Artists) && props.song.Artists.length > 0) {
+    const mapped = props.song.Artists.map((artist) => ({
+      id: artist?.UserId || artist?.Id || artist?.ArtistId || null,
+      name: artist?.FullName || artist?.Name || artist?.ArtistName || "Artist",
+    })).filter((artist) => artist.name && artist.name.trim().length > 0);
+
+    if (mapped.length > 0) return mapped;
+  }
+
+  const names = normalizeArtistField(
+    props.song.ArtistNames || props.song.ArtistName,
+  );
+  const ids = normalizeArtistField(props.song.ArtistIds || props.song.ArtistId);
+
+  if (ids.length === 0) {
+    return names.map((name) => ({ id: null, name }));
+  }
+
+  const artists = ids.map((id, index) => ({
+    id,
+    name: names[index] || names[0] || "Artist",
+  }));
+
+  return artists.filter(
+    (artist, index, list) =>
+      list.findIndex(
+        (item) => item.id === artist.id && item.name === artist.name,
+      ) === index,
   );
 });
 

@@ -57,14 +57,30 @@
                 <span class="eq-bar w-[3px] bg-primary rounded-full"></span>
               </div>
             </div>
-            <p
-              class="text-xs text-neutral-400 truncate hover:text-white hover:underline cursor-pointer"
-            >
-              {{
-                playerStore.currentTrack.ArtistNames?.trim() ||
-                playerStore.currentTrack.ArtistName?.trim() ||
-                t("home.unknown_artist")
-              }}
+            <p class="text-xs truncate">
+              <template v-if="currentTrackArtists.length > 0">
+                <template
+                  v-for="(artist, artistIndex) in currentTrackArtists"
+                  :key="`footer-artist-${artist.id || artist.name}-${artistIndex}`"
+                >
+                  <button
+                    type="button"
+                    class="text-neutral-400 hover:text-white hover:underline cursor-pointer transition-colors"
+                    @click.stop="goToArtist(artist)"
+                  >
+                    {{ artist.name }}
+                  </button>
+                  <span
+                    v-if="artistIndex < currentTrackArtists.length - 1"
+                    class="text-neutral-500"
+                  >
+                    ,
+                  </span>
+                </template>
+              </template>
+              <span v-else class="text-neutral-400">
+                {{ t("home.unknown_artist") }}
+              </span>
             </p>
           </div>
 
@@ -529,10 +545,12 @@
 import { usePlayerStore } from "~/stores/usePlayerStore";
 import { useLikedSongsStore } from "~/stores/useLikedSongsStore";
 import interactionApi from "~/api/interactionApi";
+import artistApi from "~/api/artistApi";
 
 const playerStore = usePlayerStore();
 const likedSongsStore = useLikedSongsStore();
 const { t } = useI18n();
+const router = useRouter();
 const audioRef = ref(null);
 const progressRef = ref(null);
 const volumeRef = ref(null);
@@ -579,6 +597,111 @@ const likeButtonRect = ref(null);
 // Queue panel
 const showQueue = ref(false);
 const queueListRef = ref(null);
+
+const normalizeArtistField = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item ?? "").trim())
+      .filter((item) => item.length > 0);
+  }
+
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  return String(value)
+    .split(/[;,|]/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+};
+
+const getTrackArtists = (track) => {
+  if (!track) return [];
+
+  if (Array.isArray(track.Artists) && track.Artists.length > 0) {
+    const mapped = track.Artists.map((artist) => ({
+      id: artist?.UserId || artist?.Id || artist?.ArtistId || null,
+      name: artist?.FullName || artist?.Name || artist?.ArtistName || "Artist",
+    })).filter((artist) => artist.name && artist.name.trim().length > 0);
+
+    if (mapped.length > 0) return mapped;
+  }
+
+  const names = normalizeArtistField(track.ArtistNames || track.ArtistName);
+  const ids = normalizeArtistField(track.ArtistIds || track.ArtistId);
+
+  if (ids.length === 0) {
+    return names.map((name) => ({ id: null, name }));
+  }
+
+  const artists = ids.map((id, index) => ({
+    id,
+    name: names[index] || names[0] || "Artist",
+  }));
+
+  return artists.filter(
+    (artist, index, list) =>
+      list.findIndex(
+        (item) => item.id === artist.id && item.name === artist.name,
+      ) === index,
+  );
+};
+
+const currentTrackArtists = computed(() =>
+  getTrackArtists(playerStore.currentTrack),
+);
+
+const artistLookupCache = ref({});
+
+const resolveArtistId = async (artist) => {
+  const directId = artist?.id ? String(artist.id).trim() : "";
+  if (directId) return directId;
+
+  const name = String(artist?.name || "").trim();
+  if (!name) return null;
+
+  if (artistLookupCache.value[name]) {
+    return artistLookupCache.value[name];
+  }
+
+  try {
+    const res = await artistApi.getArtists({
+      keyword: name,
+      pageIndex: 1,
+      pageSize: 5,
+    });
+    const list = Array.isArray(res?.Data)
+      ? res.Data
+      : Array.isArray(res)
+        ? res
+        : [];
+    const normalized = name.toLowerCase();
+    const matched =
+      list.find((item) => {
+        const fullName = String(
+          item?.FullName || item?.Name || "",
+        ).toLowerCase();
+        return fullName === normalized;
+      }) || list[0];
+
+    const resolvedId =
+      matched?.UserId || matched?.Id || matched?.ArtistId || null;
+    if (resolvedId) {
+      artistLookupCache.value[name] = String(resolvedId);
+      return String(resolvedId);
+    }
+  } catch (error) {
+    console.error("Resolve artist id failed:", error);
+  }
+
+  return null;
+};
+
+const goToArtist = async (artist) => {
+  const artistId = await resolveArtistId(artist);
+  if (!artistId) return;
+  router.push(`/artist/${artistId}`);
+};
 
 // Drag & drop for queue
 const dragIndex = ref(null);

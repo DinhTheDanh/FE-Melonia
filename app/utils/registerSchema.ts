@@ -15,11 +15,11 @@ export const useRegisterSchema = (t: any) => {
       .regex(/[\d\W_]/, t("auth.register.criteria_special")),
   });
 
-  const step3 = z.object({});
-
-  const step4 = z.object({
-    // marketing: z.boolean(),
+  const step3 = z.object({
+    agree_terms: z.literal(true, {
+      message: t("auth.errors.required"),
+    }),
   });
 
-  return { step1, step2, step3, step4 };
+  return { step1, step2, step3 };
 };

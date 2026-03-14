@@ -150,7 +150,7 @@ onMounted(async () => {
       const res = await musicApi.getSongs({
         genreId: genreId.value,
         pageIndex: 1,
-        pageSize: 50,
+        pageSize: 20,
       });
       songs.value = res.Data || res || [];
     } else if (type.value === "recommended" && user.value?.id) {
@@ -160,7 +160,7 @@ onMounted(async () => {
       );
       songs.value = res.Data || res || [];
     } else {
-      const res = await musicApi.getSongs({ pageIndex: 1, pageSize: 50 });
+      const res = await musicApi.getSongs({ pageIndex: 1, pageSize: 20 });
       songs.value = res.Data || res || [];
     }
   } catch (error) {

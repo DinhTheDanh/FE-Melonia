@@ -354,7 +354,7 @@ const fetchUserPlaylists = async () => {
   try {
     const response = await musicApi.getMyPlaylists({
       pageIndex: 1,
-      pageSize: 50,
+      pageSize: 20,
     });
     userPlaylists.value = response?.Data || response?.Items || response || [];
   } catch (error) {

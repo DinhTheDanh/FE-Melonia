@@ -134,9 +134,12 @@
           {{ t("home.show_all") }}
         </NuxtLink>
       </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
+      <div
+        ref="featuredArtistsGridRef"
+        class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6"
+      >
         <NuxtLink
-          v-for="artist in artists.slice(0, 6)"
+          v-for="artist in artists.slice(0, featuredArtistsVisibleCount)"
           :key="artist.UserId || artist.Id || artist.ArtistId"
           :to="`/artist/${artist.UserId || artist.Id || artist.ArtistId}`"
           class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
@@ -192,9 +195,12 @@
           {{ t("home.show_all") }}
         </NuxtLink>
       </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
+      <div
+        ref="popularSongsGridRef"
+        class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6"
+      >
         <div
-          v-for="song in allSongs.slice(0, 12)"
+          v-for="song in allSongs.slice(0, popularSongsVisibleCount)"
           :key="song.Id"
           class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
           @click="playSong(song, allSongs)"
@@ -257,9 +263,12 @@
           {{ t("home.show_all") }}
         </NuxtLink>
       </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
+      <div
+        ref="popularAlbumsGridRef"
+        class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6"
+      >
         <NuxtLink
-          v-for="album in allAlbums.slice(0, 6)"
+          v-for="album in allAlbums.slice(0, popularAlbumsVisibleCount)"
           :key="album.AlbumId"
           :to="`/user/my-albums/${album.AlbumId}`"
           class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
@@ -341,6 +350,103 @@ const allSongs = ref([]);
 const allAlbums = ref([]);
 const artists = ref([]);
 
+const toNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const sortSongsByPopularity = (songs = []) => {
+  return [...songs].sort((a, b) => {
+    const aLikes = toNumber(a?.LikeCount);
+    const bLikes = toNumber(b?.LikeCount);
+    const aListens = toNumber(a?.ListenCount);
+    const bListens = toNumber(b?.ListenCount);
+
+    const scoreA = aLikes * 3 + aListens;
+    const scoreB = bLikes * 3 + bListens;
+
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    if (bLikes !== aLikes) return bLikes - aLikes;
+    if (bListens !== aListens) return bListens - aListens;
+
+    const aCreated = new Date(a?.CreatedAt || 0).getTime();
+    const bCreated = new Date(b?.CreatedAt || 0).getTime();
+    return bCreated - aCreated;
+  });
+};
+
+const sortArtistsByPopularity = (artistList = []) => {
+  return [...artistList].sort((a, b) => {
+    const aFollowers = toNumber(a?.FollowerCount);
+    const bFollowers = toNumber(b?.FollowerCount);
+    const aLikes = toNumber(a?.TotalLikes);
+    const bLikes = toNumber(b?.TotalLikes);
+    const aListens = toNumber(a?.TotalListens);
+    const bListens = toNumber(b?.TotalListens);
+    const aSongCount = toNumber(a?.SongCount);
+    const bSongCount = toNumber(b?.SongCount);
+
+    const scoreA = aFollowers * 5 + aLikes * 2 + aListens + aSongCount * 3;
+    const scoreB = bFollowers * 5 + bLikes * 2 + bListens + bSongCount * 3;
+
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    if (bFollowers !== aFollowers) return bFollowers - aFollowers;
+    if (bListens !== aListens) return bListens - aListens;
+    return bSongCount - aSongCount;
+  });
+};
+
+const featuredArtistsGridRef = ref(null);
+const popularSongsGridRef = ref(null);
+const popularAlbumsGridRef = ref(null);
+
+const featuredArtistsVisibleCount = ref(6);
+const popularSongsVisibleCount = ref(6);
+const popularAlbumsVisibleCount = ref(6);
+
+const CARD_MIN_WIDTH = 180;
+const GRID_GAP = 24;
+
+const getVisibleCountForOneRow = (element, fallback = 6) => {
+  const width = element?.clientWidth || 0;
+  if (!width) return fallback;
+  return Math.max(
+    1,
+    Math.floor((width + GRID_GAP) / (CARD_MIN_WIDTH + GRID_GAP)),
+  );
+};
+
+const recalculateOneRowCounts = () => {
+  featuredArtistsVisibleCount.value = getVisibleCountForOneRow(
+    featuredArtistsGridRef.value,
+    6,
+  );
+  popularSongsVisibleCount.value = getVisibleCountForOneRow(
+    popularSongsGridRef.value,
+    6,
+  );
+  popularAlbumsVisibleCount.value = getVisibleCountForOneRow(
+    popularAlbumsGridRef.value,
+    6,
+  );
+};
+
+let homeGridResizeObserver = null;
+
+const attachGridObservers = () => {
+  if (!import.meta.client || !homeGridResizeObserver) return;
+
+  homeGridResizeObserver.disconnect();
+
+  [
+    featuredArtistsGridRef.value,
+    popularSongsGridRef.value,
+    popularAlbumsGridRef.value,
+  ]
+    .filter(Boolean)
+    .forEach((element) => homeGridResizeObserver.observe(element));
+};
+
 // Play a song and set queue
 const playSong = (song, queue) => {
   const index = queue.findIndex((s) => s.Id === song.Id);
@@ -354,7 +460,7 @@ const playArtist = async (artist) => {
   try {
     const res = await artistApi.getSongsByArtistId(artistId, {
       pageIndex: 1,
-      pageSize: 50,
+      pageSize: 20,
     });
     const artistSongs = res?.Data || res?.Items || res || [];
     if (artistSongs.length > 0) {
@@ -370,7 +476,7 @@ const playAlbum = async (album) => {
   const albumId = album.AlbumId || album.Id;
   if (!albumId) return;
   try {
-    const res = await musicApi.getAlbumDetail(albumId, { pageSize: 100 });
+    const res = await musicApi.getAlbumDetail(albumId, { pageSize: 15 });
     let albumSongs = [];
     if (res?.Songs?.Data) {
       albumSongs = res.Songs.Data;
@@ -409,7 +515,8 @@ const fetchData = async () => {
 
     // Handle songs response
     if (songsRes) {
-      allSongs.value = songsRes.Data || songsRes || [];
+      const songList = songsRes.Data || songsRes || [];
+      allSongs.value = sortSongsByPopularity(songList);
     }
 
     // Handle albums response
@@ -419,7 +526,8 @@ const fetchData = async () => {
 
     // Handle artists response
     if (artistsRes) {
-      artists.value = artistsRes.Data || artistsRes || [];
+      const artistList = artistsRes.Data || artistsRes || [];
+      artists.value = sortArtistsByPopularity(artistList);
     }
 
     // Fetch recommendations if user is logged in
@@ -453,5 +561,39 @@ const fetchData = async () => {
 
 onMounted(() => {
   fetchData();
+  recalculateOneRowCounts();
+
+  if (import.meta.client) {
+    window.addEventListener("resize", recalculateOneRowCounts);
+
+    homeGridResizeObserver = new ResizeObserver(() => {
+      recalculateOneRowCounts();
+    });
+
+    attachGridObservers();
+  }
+});
+
+watch(
+  [
+    () => artists.value.length,
+    () => allSongs.value.length,
+    () => allAlbums.value.length,
+    () => isLoading.value,
+  ],
+  async () => {
+    await nextTick();
+    recalculateOneRowCounts();
+    attachGridObservers();
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  if (import.meta.client) {
+    window.removeEventListener("resize", recalculateOneRowCounts);
+  }
+  homeGridResizeObserver?.disconnect();
+  homeGridResizeObserver = null;
 });
 </script>

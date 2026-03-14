@@ -619,6 +619,10 @@ const isArtistOrAdmin = computed(() => {
 });
 const isAdmin = computed(() => userRole.value === "Admin");
 
+const navigateToMyMusic = () => {
+  navigateTo("/user/my-music");
+};
+
 // Handle logout
 const handleLogout = async () => {
   toast.add({
@@ -647,6 +651,7 @@ const dropdownItems = computed(() => {
         label: t("song.my_music"),
         to: "/user/my-music",
         icon: "i-lucide-music",
+        onSelect: navigateToMyMusic,
       },
       {
         label: t("song.my_albums"),
@@ -821,7 +826,7 @@ const getPlaylistThumb = (playlist) => {
 
 const fetchUserPlaylists = async () => {
   try {
-    const res = await musicApi.getMyPlaylists({ pageIndex: 1, pageSize: 50 });
+    const res = await musicApi.getMyPlaylists({ pageIndex: 1, pageSize: 20 });
     userPlaylists.value = res.Data || res || [];
   } catch (error) {}
 };
