@@ -2,22 +2,26 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   // Lấy token từ cookie
   const jwt = useCookie("jwt");
 
-  // Các trang công khai không yêu cầu xác thực
-  const publicRoutes = ["/auth/login", "/auth/register"];
-  const isPublicRoute = publicRoutes.some((route) => to.path.startsWith(route));
+  // Trang auth: chỉ dành cho user chưa đăng nhập
+  const authRoutes = ["/auth/login", "/auth/register"];
+  const isAuthRoute = authRoutes.some((route) => to.path.startsWith(route));
+
+  // Trang không yêu cầu xác thực (ai cũng vào được)
+  const openRoutes = ["/payment"];
+  const isOpenRoute = openRoutes.some((route) => to.path.startsWith(route));
 
   // Nếu user đã đăng nhập mà vào trang auth thì redirect về home
-  if (jwt.value && isPublicRoute) {
+  if (jwt.value && isAuthRoute) {
     return navigateTo("/");
   }
 
-  // Nếu user chưa đăng nhập và vào trang không public thì redirect về login
-  if (!jwt.value && !isPublicRoute) {
+  // Nếu user chưa đăng nhập và vào trang cần auth thì redirect về login
+  if (!jwt.value && !isAuthRoute && !isOpenRoute) {
     return navigateTo("/auth/login");
   }
 
   // Check if token is expired (only on client-side)
-  if (jwt.value && import.meta.client && !isPublicRoute) {
+  if (jwt.value && import.meta.client && !isAuthRoute && !isOpenRoute) {
     try {
       // Decode token to check expiration
       const base64Url = jwt.value.split(".")[1];

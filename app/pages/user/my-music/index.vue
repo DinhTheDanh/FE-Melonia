@@ -1,603 +1,614 @@
 <template>
-  <div class="min-h-screen bg-[#121212] text-white">
+  <div class="min-h-screen pb-8">
     <!-- Hero Header with Gradient -->
-    <div class="relative">
-      <!-- Gradient Background -->
-      <div
-        class="absolute inset-0 h-80"
-        :style="{
-          background: `linear-gradient(180deg, ${dominantColor}40 0%, ${dominantColor}20 50%, #121212 100%)`,
-        }"
-      />
+    <div
+      ref="headerRef"
+      class="relative -mx-4 -mt-4 px-8 pt-16 pb-8"
+      style="
+        background: linear-gradient(
+          180deg,
+          #535353 0%,
+          #333333 40%,
+          #121212 100%
+        );
+      "
+    >
+      <div class="flex items-end gap-6">
+        <!-- Large Playlist Icon -->
+        <div
+          class="w-56 h-56 bg-linear-to-br from-[#282828] to-[#121212] rounded-lg shadow-2xl flex items-center justify-center shrink-0"
+        >
+          <UIcon name="i-lucide-music" class="size-24 text-[#7F7F7F]" />
+        </div>
 
-      <div class="relative px-8 pt-16 pb-6">
-        <div class="max-w-7xl mx-auto">
-          <!-- Header Content -->
-          <div class="flex items-end gap-6">
-            <!-- Large Playlist Icon -->
-            <div
-              class="w-56 h-56 bg-linear-to-br from-[#282828] to-[#121212] rounded-lg shadow-2xl flex items-center justify-center shrink-0"
+        <!-- Metadata -->
+        <div class="flex-1 min-w-0 pb-2">
+          <p class="text-xs font-bold text-white uppercase tracking-wider mb-2">
+            {{ $t("playlist.private_playlist") }}
+          </p>
+          <h1 class="text-5xl font-black text-white leading-tight mb-4">
+            {{ $t("song.my_music") }}
+          </h1>
+          <div class="flex items-center gap-2 text-sm text-neutral-200">
+            <span class="font-semibold">{{ userName }}</span>
+            <span class="text-neutral-400">·</span>
+            <span>{{ songs.length }} {{ $t("song.songs_count") }}</span>
+            <span v-if="totalDuration" class="text-neutral-400"
+              >· {{ totalDuration }}</span
             >
-              <UIcon name="i-lucide-music" class="size-24 text-[#7F7F7F]" />
-            </div>
-
-            <!-- Metadata -->
-            <div class="flex flex-col gap-2 pb-2">
-              <span class="text-xs font-bold uppercase tracking-wider"
-                >Playlist</span
-              >
-              <h1 class="text-6xl font-black tracking-tight">
-                {{ $t("song.my_music") }}
-              </h1>
-              <p class="text-neutral-400 text-sm mt-4">
-                <span class="text-white font-medium">{{ userName }}</span> •
-                {{ songs.length }} {{ $t("song.songs_count") }},
-                {{ totalDuration }}
-              </p>
-            </div>
           </div>
+        </div>
+      </div>
+    </div>
 
-          <!-- Action Buttons Row -->
-          <div class="flex items-center gap-6 mt-8">
-            <!-- Large Play Button -->
-            <button
-              class="w-14 h-14 bg-purple-500 hover:bg-purple-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer"
-              @click="togglePlayAll"
-            >
-              <UIcon
-                v-if="isPlayingMyMusic"
-                name="i-fa6-solid-pause"
-                class="size-6 text-white"
-              />
-              <UIcon
-                v-else
-                name="i-fa6-solid-play"
-                class="size-6 text-white ml-0.5"
-              />
-            </button>
+    <!-- Action Bar -->
+    <div class="flex items-center gap-6 px-8 py-4">
+      <!-- Large Play Button -->
+      <button
+        class="w-14 h-14 bg-purple-500 hover:bg-purple-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer"
+        @click="togglePlayAll"
+      >
+        <UIcon
+          v-if="isPlayingMyMusic"
+          name="i-fa6-solid-pause"
+          class="size-6 text-white"
+        />
+        <UIcon
+          v-else
+          name="i-fa6-solid-play"
+          class="size-6 text-white ml-0.5"
+        />
+      </button>
 
-            <!-- Shuffle -->
-            <button
-              class="p-2 hover:scale-110 transition-transform cursor-pointer"
-            >
-              <UIcon
-                name="i-lucide-shuffle"
-                class="size-8 text-neutral-400 hover:text-white transition-colors"
-              />
-            </button>
+      <!-- Shuffle -->
+      <button class="p-2 hover:scale-110 transition-transform cursor-pointer">
+        <UIcon
+          name="i-lucide-shuffle"
+          class="size-8 text-neutral-400 hover:text-white transition-colors"
+        />
+      </button>
 
-            <!-- Upload Button -->
-            <NuxtLink to="/create/song">
-              <button
-                class="p-2 hover:scale-110 transition-transform cursor-pointer"
-              >
-                <UIcon
-                  name="i-lucide-plus-circle"
-                  class="size-8 text-neutral-400 hover:text-white transition-colors"
-                />
-              </button>
-            </NuxtLink>
+      <!-- Upload Button -->
+      <NuxtLink to="/create/song">
+        <button class="p-2 hover:scale-110 transition-transform cursor-pointer">
+          <UIcon
+            name="i-lucide-plus-circle"
+            class="size-8 text-neutral-400 hover:text-white transition-colors"
+          />
+        </button>
+      </NuxtLink>
 
-            <!-- More Options -->
-            <button
-              class="p-2 hover:scale-110 transition-transform cursor-pointer"
-            >
-              <UIcon
-                name="i-lucide-more-horizontal"
-                class="size-8 text-neutral-400 hover:text-white transition-colors"
-              />
-            </button>
+      <!-- More Options -->
+      <button class="p-2 hover:scale-110 transition-transform cursor-pointer">
+        <UIcon
+          name="i-lucide-more-horizontal"
+          class="size-8 text-neutral-400 hover:text-white transition-colors"
+        />
+      </button>
 
-            <!-- Search (Right aligned) -->
-            <div class="ml-auto relative">
-              <div
-                class="flex items-center transition-all duration-300"
-                :class="isSearchFocused ? 'w-64' : 'w-48'"
-              >
-                <UIcon
-                  name="i-lucide-search"
-                  class="absolute left-3 size-4 text-neutral-400"
-                />
-                <input
-                  v-model="searchInput"
-                  type="text"
-                  :placeholder="$t('song.search_in_playlist')"
-                  class="w-full h-8 bg-[#242424] text-white text-sm pl-9 pr-4 rounded border border-transparent focus:border-white/20 focus:bg-[#2a2a2a] outline-none placeholder:text-neutral-500 transition-all"
-                  @focus="isSearchFocused = true"
-                  @blur="isSearchFocused = false"
-                />
-              </div>
-            </div>
-          </div>
+      <!-- Search (Right aligned) -->
+      <div class="ml-auto relative">
+        <div
+          class="flex items-center transition-all duration-300"
+          :class="isSearchFocused ? 'w-64' : 'w-48'"
+        >
+          <UIcon
+            name="i-lucide-search"
+            class="absolute left-3 size-4 text-neutral-400"
+          />
+          <input
+            v-model="searchInput"
+            type="text"
+            :placeholder="$t('song.search_in_playlist')"
+            class="w-full h-8 bg-[#242424] text-white text-sm pl-9 pr-4 rounded border border-transparent focus:border-white/20 focus:bg-[#2a2a2a] outline-none placeholder:text-neutral-500 transition-all"
+            @focus="isSearchFocused = true"
+            @blur="isSearchFocused = false"
+          />
         </div>
       </div>
     </div>
 
     <!-- Main Content -->
-    <div class="px-8 pb-8">
-      <div class="max-w-7xl mx-auto">
-        <!-- Loading State -->
-        <div v-if="isLoading" class="space-y-2">
+    <div class="px-4">
+      <div v-if="isLoading" class="space-y-2">
+        <div
+          v-for="i in 10"
+          :key="i"
+          class="flex items-center gap-4 px-4 py-2 rounded-md"
+        >
+          <div class="w-4 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
           <div
-            v-for="i in 10"
-            :key="i"
-            class="flex items-center gap-4 px-4 py-2 rounded-md"
-          >
-            <div class="w-4 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
+            class="w-10 h-10 bg-neutral-700 rounded animate-pulse shrink-0"
+          ></div>
+          <div class="flex-1 space-y-2">
             <div
-              class="w-10 h-10 bg-neutral-700 rounded animate-pulse shrink-0"
+              class="h-4 bg-neutral-700 rounded animate-pulse"
+              :style="{ width: `${Math.random() * 30 + 30}%` }"
             ></div>
-            <div class="flex-1 space-y-2">
-              <div
-                class="h-4 bg-neutral-700 rounded animate-pulse"
-                :style="{ width: `${Math.random() * 30 + 30}%` }"
-              ></div>
-              <div
-                class="w-24 h-3 bg-neutral-700/50 rounded animate-pulse"
-              ></div>
-            </div>
-            <div class="w-20 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
-            <div class="w-16 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
-            <div class="w-12 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
+            <div class="w-24 h-3 bg-neutral-700/50 rounded animate-pulse"></div>
           </div>
+          <div class="w-20 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
+          <div class="w-16 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
+          <div class="w-12 h-4 bg-neutral-700/50 rounded animate-pulse"></div>
         </div>
+      </div>
 
-        <!-- Empty State -->
-        <div v-else-if="songs.length === 0" class="text-center py-20">
-          <UIcon
-            name="i-lucide-music"
-            class="size-20 mx-auto mb-4 text-neutral-600"
-          />
-          <p class="text-xl text-neutral-400 mb-6">{{ $t("song.no_songs") }}</p>
-          <NuxtLink to="/create/song">
-            <button
-              class="inline-flex items-center gap-2 bg-white hover:bg-neutral-200 text-black font-bold py-3 px-8 rounded-full transition-colors cursor-pointer"
-            >
-              <UIcon name="i-lucide-plus" class="size-5" />
-              {{ $t("song.upload_now") }}
-            </button>
-          </NuxtLink>
-        </div>
-
-        <!-- Songs List -->
-        <div v-else>
-          <!-- Selection Bar (Fixed when items selected) -->
-          <Transition name="slide-down">
-            <div
-              v-if="selectedSongs.length > 0"
-              class="sticky top-0 z-10 bg-[#1a1a1a] border-b border-white/10 px-4 py-3 mb-4 rounded-lg flex items-center gap-4"
-            >
-              <UCheckbox
-                :model-value="isAllSelected"
-                :indeterminate="isIndeterminate"
-                @update:model-value="toggleSelectAll"
-                :ui="{ base: 'cursor-pointer' }"
-              />
-              <span class="text-sm text-white font-medium">
-                {{ selectedSongs.length }} {{ $t("song.selected") }}
-              </span>
-              <button
-                class="text-sm text-purple-500 hover:text-purple-400 cursor-pointer transition-colors"
-                @click="selectedSongs = []"
-              >
-                {{ $t("song.deselect_all") }}
-              </button>
-              <div class="flex items-center gap-2 ml-auto">
-                <button
-                  class="flex items-center gap-2 px-4 py-1.5 text-sm text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-                  @click="openBulkDeleteConfirm"
-                >
-                  <UIcon name="i-lucide-trash-2" class="size-4 text-red-400" />
-                  {{ $t("song.delete") }}
-                </button>
-              </div>
-            </div>
-          </Transition>
-
-          <!-- Table Header -->
-          <div
-            class="grid grid-cols-[16px_minmax(200px,4fr)_minmax(120px,2fr)_minmax(120px,1fr)_60px_40px] gap-4 px-4 py-2 border-b border-white/10 text-xs uppercase tracking-wider text-neutral-400 sticky top-0 bg-[#121212] z-5"
+      <!-- Empty State -->
+      <div v-else-if="songs.length === 0" class="text-center py-20">
+        <UIcon
+          name="i-lucide-music"
+          class="size-20 mx-auto mb-4 text-neutral-600"
+        />
+        <p class="text-xl text-neutral-400 mb-6">{{ $t("song.no_songs") }}</p>
+        <NuxtLink to="/create/song">
+          <button
+            class="inline-flex items-center gap-2 bg-white hover:bg-neutral-200 text-black font-bold py-3 px-8 rounded-full transition-colors cursor-pointer"
           >
-            <div class="text-center">#</div>
-            <div>{{ $t("song.song_title") }}</div>
-            <div>{{ $t("song.album") }}</div>
-            <div>{{ $t("song.date_added") }}</div>
-            <div class="text-center">
-              <UIcon name="i-lucide-clock" class="size-4" />
-            </div>
-            <div></div>
-          </div>
+            <UIcon name="i-lucide-plus" class="size-5" />
+            {{ $t("song.upload_now") }}
+          </button>
+        </NuxtLink>
+      </div>
 
-          <!-- Track Rows -->
-          <div class="mt-2">
-            <div
-              v-for="(song, index) in paginatedSongs"
-              :key="song.SongId"
-              class="group grid grid-cols-[16px_minmax(200px,4fr)_minmax(120px,2fr)_minmax(120px,1fr)_60px_40px] gap-4 px-4 py-2 rounded-md hover:bg-white/10 transition-colors items-center"
-              :class="{ 'bg-white/5': selectedSongs.includes(song.SongId) }"
+      <!-- Songs List -->
+      <div v-else>
+        <!-- Selection Bar (Fixed when items selected) -->
+        <Transition name="slide-down">
+          <div
+            v-if="selectedSongs.length > 0"
+            class="sticky top-0 z-10 bg-[#1a1a1a] border-b border-white/10 px-4 py-3 mb-4 rounded-lg flex items-center gap-4"
+          >
+            <UCheckbox
+              :model-value="isAllSelected"
+              :indeterminate="isIndeterminate"
+              @update:model-value="toggleSelectAll"
+              :ui="{ base: 'cursor-pointer' }"
+            />
+            <span class="text-sm text-white font-medium">
+              {{ selectedSongs.length }} {{ $t("song.selected") }}
+            </span>
+            <button
+              class="text-sm text-purple-500 hover:text-purple-400 cursor-pointer transition-colors"
+              @click="selectedSongs = []"
             >
-              <!-- # / Play / Checkbox / Equalizer -->
-              <div class="flex items-center justify-center relative w-5 h-5">
-                <!-- Checkbox (show on hover or when selected) -->
-                <div
-                  :class="[
-                    'absolute inset-0 flex items-center justify-center transition-opacity z-10',
-                    selectedSongs.includes(song.SongId) ||
-                    selectedSongs.length > 0
-                      ? 'opacity-100'
-                      : 'opacity-0 group-hover:opacity-100',
-                  ]"
-                >
-                  <UCheckbox
-                    :model-value="selectedSongs.includes(song.SongId)"
-                    @update:model-value="toggleSelectSong(song.SongId)"
-                    @click.stop
-                    :ui="{ base: 'cursor-pointer' }"
-                  />
-                </div>
-
-                <!-- Current track: show equalizer (hide when checkbox or hover) -->
-                <template
-                  v-if="isCurrentTrack(song) && selectedSongs.length === 0"
-                >
-                  <div
-                    class="equalizer group-hover:hidden!"
-                    :class="{ paused: !playerStore.isPlaying }"
-                  >
-                    <span class="equalizer-bar"></span>
-                    <span class="equalizer-bar"></span>
-                    <span class="equalizer-bar"></span>
-                    <span class="equalizer-bar"></span>
-                  </div>
-                </template>
-
-                <!-- Number (hide when checkbox shown or current track) -->
-                <span
-                  v-else-if="selectedSongs.length === 0"
-                  class="text-sm text-neutral-400 group-hover:hidden"
-                >
-                  {{ (currentPage - 1) * itemsPerPage + index + 1 }}
-                </span>
-
-                <!-- Play/Pause button (show on hover when no selection) -->
-                <button
-                  v-if="selectedSongs.length === 0"
-                  class="hidden group-hover:flex items-center justify-center"
-                  @click.stop="togglePlaySong(song)"
-                >
-                  <UIcon
-                    v-if="isCurrentTrack(song) && playerStore.isPlaying"
-                    name="i-fa6-solid-pause"
-                    class="size-4 text-white"
-                  />
-                  <UIcon
-                    v-else
-                    name="i-fa6-solid-play"
-                    class="size-4 text-white"
-                  />
-                </button>
-              </div>
-
-              <!-- Title + Artist -->
-              <div class="flex items-center gap-3 min-w-0">
-                <!-- Thumbnail -->
-                <div
-                  class="relative w-10 h-10 rounded overflow-hidden shrink-0"
-                >
-                  <img
-                    v-if="song.Thumbnail"
-                    :src="song.Thumbnail"
-                    :alt="song.Title"
-                    class="w-full h-full object-cover"
-                  />
-                  <div
-                    v-else
-                    class="w-full h-full bg-[#282828] flex items-center justify-center"
-                  >
-                    <UIcon
-                      name="i-lucide-music"
-                      class="size-5 text-neutral-500"
-                    />
-                  </div>
-                </div>
-
-                <!-- Title & Artist -->
-                <div class="min-w-0 flex-1">
-                  <p
-                    class="text-sm font-medium truncate"
-                    :class="
-                      isCurrentTrack(song) ? 'text-purple-400' : 'text-white'
-                    "
-                  >
-                    {{ song.Title }}
-                  </p>
-                  <p
-                    class="text-neutral-400 text-xs truncate hover:text-white hover:underline cursor-pointer"
-                  >
-                    {{ song.ArtistNames || "-" }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Album -->
-              <div
-                class="text-neutral-400 text-sm truncate hover:text-white hover:underline cursor-pointer"
+              {{ $t("song.deselect_all") }}
+            </button>
+            <div class="flex items-center gap-2 ml-auto">
+              <button
+                class="flex items-center gap-2 px-4 py-1.5 text-sm text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                @click="openBulkDeleteConfirm"
               >
-                {{ song.AlbumTitle || "-" }}
-              </div>
+                <UIcon name="i-lucide-trash-2" class="size-4 text-red-400" />
+                {{ $t("song.delete") }}
+              </button>
+            </div>
+          </div>
+        </Transition>
 
-              <!-- Date Added -->
-              <div class="text-neutral-400 text-sm">
-                {{ formatRelativeDate(song.CreatedAt) }}
-              </div>
+        <!-- Table Header -->
+        <div
+          class="grid grid-cols-[40px_1fr_1fr_minmax(80px,100px)_70px_60px_40px] gap-4 px-4 py-2 border-b border-white/10 text-xs uppercase tracking-wider text-neutral-400 sticky top-0 bg-[#121212] z-5"
+        >
+          <div class="text-center">#</div>
+          <div>{{ $t("song.song_title") }}</div>
+          <div>{{ $t("song.album") }}</div>
+          <div>{{ $t("song.date_added") }}</div>
+          <div class="text-center">
+            <UIcon name="i-lucide-headphones" class="size-4" />
+          </div>
+          <div class="text-center">
+            <UIcon name="i-lucide-clock" class="size-4" />
+          </div>
+          <div></div>
+        </div>
 
-              <!-- Duration -->
-              <div class="text-neutral-400 text-sm text-center">
-                {{ formatDuration(song.Duration) }}
-              </div>
-
-              <!-- More button with SongContextMenu -->
-              <div class="flex items-center justify-center">
-                <SongContextMenu
-                  :song="song"
-                  :is-owner="true"
-                  :show-go-to-album="!!song.AlbumId"
-                  @edit="openEditModal"
-                  @delete="openDeleteConfirm"
+        <!-- Track Rows -->
+        <div class="mt-2">
+          <div
+            v-for="(song, index) in paginatedSongs"
+            :key="song.SongId"
+            class="group grid grid-cols-[40px_1fr_1fr_minmax(80px,100px)_70px_60px_40px] gap-4 px-4 py-2 rounded-md hover:bg-white/10 transition-colors items-center"
+            :class="{ 'bg-white/5': selectedSongs.includes(song.SongId) }"
+          >
+            <!-- # / Play / Checkbox / Equalizer -->
+            <div class="flex items-center justify-center relative w-5 h-5">
+              <!-- Checkbox (show on hover or when selected) -->
+              <div
+                :class="[
+                  'absolute inset-0 flex items-center justify-center transition-opacity z-10',
+                  selectedSongs.includes(song.SongId) ||
+                  selectedSongs.length > 0
+                    ? 'opacity-100'
+                    : 'opacity-0 group-hover:opacity-100',
+                ]"
+              >
+                <UCheckbox
+                  :model-value="selectedSongs.includes(song.SongId)"
+                  @update:model-value="toggleSelectSong(song.SongId)"
+                  @click.stop
+                  :ui="{ base: 'cursor-pointer' }"
                 />
               </div>
+
+              <!-- Current track: show equalizer (hide when checkbox or hover) -->
+              <template
+                v-if="isCurrentTrack(song) && selectedSongs.length === 0"
+              >
+                <div
+                  class="equalizer group-hover:hidden!"
+                  :class="{ paused: !playerStore.isPlaying }"
+                >
+                  <span class="equalizer-bar"></span>
+                  <span class="equalizer-bar"></span>
+                  <span class="equalizer-bar"></span>
+                  <span class="equalizer-bar"></span>
+                </div>
+              </template>
+
+              <!-- Number (hide when checkbox shown or current track) -->
+              <span
+                v-else-if="selectedSongs.length === 0"
+                class="text-sm text-neutral-400 group-hover:hidden"
+              >
+                {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+              </span>
+
+              <!-- Play/Pause button (show on hover when no selection) -->
+              <button
+                v-if="selectedSongs.length === 0"
+                class="hidden group-hover:flex items-center justify-center"
+                @click.stop="togglePlaySong(song)"
+              >
+                <UIcon
+                  v-if="isCurrentTrack(song) && playerStore.isPlaying"
+                  name="i-fa6-solid-pause"
+                  class="size-4 text-white"
+                />
+                <UIcon
+                  v-else
+                  name="i-fa6-solid-play"
+                  class="size-4 text-white"
+                />
+              </button>
+            </div>
+
+            <!-- Title + Artist -->
+            <div class="flex items-center gap-3 min-w-0">
+              <!-- Thumbnail -->
+              <div class="relative w-10 h-10 rounded overflow-hidden shrink-0">
+                <img
+                  v-if="song.Thumbnail"
+                  :src="song.Thumbnail"
+                  :alt="song.Title"
+                  class="w-full h-full object-cover"
+                />
+                <div
+                  v-else
+                  class="w-full h-full bg-[#282828] flex items-center justify-center"
+                >
+                  <UIcon
+                    name="i-lucide-music"
+                    class="size-5 text-neutral-500"
+                  />
+                </div>
+              </div>
+
+              <!-- Title & Artist -->
+              <div class="min-w-0 flex-1">
+                <p
+                  class="text-sm font-medium truncate"
+                  :class="
+                    isCurrentTrack(song) ? 'text-purple-400' : 'text-white'
+                  "
+                >
+                  {{ song.Title }}
+                </p>
+                <p
+                  class="text-neutral-400 text-xs truncate hover:text-white hover:underline cursor-pointer"
+                >
+                  {{ song.ArtistNames || "-" }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Album -->
+            <div
+              class="text-neutral-400 text-sm truncate hover:text-white hover:underline cursor-pointer"
+            >
+              {{ song.AlbumTitle || "-" }}
+            </div>
+
+            <!-- Date Added -->
+            <div class="text-neutral-400 text-sm">
+              {{ formatRelativeDate(song.CreatedAt) }}
+            </div>
+
+            <!-- Listen Count -->
+            <div
+              v-if="song.ListenCount"
+              class="flex items-center gap-1 text-xs text-neutral-500"
+            >
+              <UIcon name="i-lucide-headphones" class="size-3" />
+              {{ formatNumber(song.ListenCount) }}
+            </div>
+            <div v-else></div>
+
+            <!-- Duration -->
+            <div class="text-neutral-400 text-sm text-center">
+              {{ formatDuration(song.Duration) }}
+            </div>
+
+            <!-- More button with SongContextMenu -->
+            <div class="flex items-center justify-center">
+              <SongContextMenu
+                :song="song"
+                :is-owner="true"
+                :show-go-to-album="!!song.AlbumId"
+                @edit="openEditModal"
+                @delete="openDeleteConfirm"
+              />
             </div>
           </div>
+        </div>
 
-          <!-- Pagination -->
-          <div
-            v-if="totalPages > 1"
-            class="flex items-center justify-between mt-6 pt-4 border-t border-white/10"
-          >
-            <div class="text-sm text-neutral-400">
-              {{ filteredSongs.length }} {{ $t("song.songs_count") }}
+        <!-- Pagination -->
+        <div
+          v-if="totalPages > 1"
+          class="flex items-center justify-between mt-6 pt-4 border-t border-white/10"
+        >
+          <div class="text-sm text-neutral-400">
+            {{ filteredSongs.length }} {{ $t("song.songs_count") }}
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-neutral-400">{{
+                $t("song.per_page")
+              }}</span>
+              <select
+                v-model="itemsPerPage"
+                class="bg-transparent text-white text-sm px-2 py-1 rounded border border-white/20 focus:border-white/40 outline-none cursor-pointer"
+              >
+                <option :value="10" class="bg-[#282828]">10</option>
+                <option :value="20" class="bg-[#282828]">20</option>
+                <option :value="50" class="bg-[#282828]">50</option>
+                <option :value="100" class="bg-[#282828]">100</option>
+              </select>
             </div>
-            <div class="flex items-center gap-4">
-              <div class="flex items-center gap-2">
-                <span class="text-sm text-neutral-400">{{
-                  $t("song.per_page")
-                }}</span>
-                <select
-                  v-model="itemsPerPage"
-                  class="bg-transparent text-white text-sm px-2 py-1 rounded border border-white/20 focus:border-white/40 outline-none cursor-pointer"
-                >
-                  <option :value="10" class="bg-[#282828]">10</option>
-                  <option :value="20" class="bg-[#282828]">20</option>
-                  <option :value="50" class="bg-[#282828]">50</option>
-                  <option :value="100" class="bg-[#282828]">100</option>
-                </select>
-              </div>
-              <span class="text-sm text-neutral-400">
-                {{ (currentPage - 1) * itemsPerPage + 1 }}-{{
-                  Math.min(currentPage * itemsPerPage, filteredSongs.length)
-                }}
-                {{ $t("song.of") }} {{ filteredSongs.length }}
-              </span>
-              <div class="flex items-center gap-1">
-                <button
-                  :disabled="currentPage === 1"
-                  class="p-2 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                  @click="currentPage--"
-                >
-                  <UIcon name="i-lucide-chevron-left" class="size-5" />
-                </button>
-                <button
-                  :disabled="currentPage === totalPages"
-                  class="p-2 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                  @click="currentPage++"
-                >
-                  <UIcon name="i-lucide-chevron-right" class="size-5" />
-                </button>
-              </div>
+            <span class="text-sm text-neutral-400">
+              {{ (currentPage - 1) * itemsPerPage + 1 }}-{{
+                Math.min(currentPage * itemsPerPage, filteredSongs.length)
+              }}
+              {{ $t("song.of") }} {{ filteredSongs.length }}
+            </span>
+            <div class="flex items-center gap-1">
+              <button
+                :disabled="currentPage === 1"
+                class="p-2 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                @click="currentPage--"
+              >
+                <UIcon name="i-lucide-chevron-left" class="size-5" />
+              </button>
+              <button
+                :disabled="currentPage === totalPages"
+                class="p-2 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                @click="currentPage++"
+              >
+                <UIcon name="i-lucide-chevron-right" class="size-5" />
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Edit Modal -->
-    <Transition name="fade">
+  <!-- Edit Modal -->
+  <Transition name="fade">
+    <div
+      v-if="isEditModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      @click="closeEditModal"
+    >
       <div
-        v-if="isEditModalOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-        @click="closeEditModal"
+        class="bg-[#282828] rounded-lg p-6 max-w-lg w-full mx-4 border border-white/10 max-h-[85vh] overflow-y-auto"
+        @click.stop
       >
-        <div
-          class="bg-[#282828] rounded-lg p-6 max-w-lg w-full mx-4 border border-white/10 max-h-[85vh] overflow-y-auto"
-          @click.stop
-        >
-          <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold">{{ $t("song.edit_song") }}</h2>
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold">{{ $t("song.edit_song") }}</h2>
+          <button
+            class="p-1 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            @click="closeEditModal"
+          >
+            <UIcon name="i-lucide-x" class="size-5" />
+          </button>
+        </div>
+
+        <div class="space-y-5">
+          <!-- Title -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-300 mb-2">
+              {{ $t("song.song_title") }}
+            </label>
+            <input
+              v-model="editForm.title"
+              type="text"
+              :placeholder="$t('song.song_title_placeholder')"
+              class="w-full bg-[#3E3E3E] text-white px-4 py-3 rounded-md border border-transparent focus:border-purple-500 outline-none placeholder:text-neutral-500 transition-colors"
+            />
+          </div>
+
+          <!-- Cover Image -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-300 mb-2">
+              {{ $t("song.cover_image") }}
+            </label>
+            <div
+              class="group relative w-32 h-32 rounded-md overflow-hidden bg-[#3E3E3E] cursor-pointer"
+              @click="triggerEditImageInput"
+            >
+              <img
+                v-if="editForm.coverPreview"
+                :src="editForm.coverPreview"
+                class="w-full h-full object-cover"
+              />
+              <div
+                v-else
+                class="w-full h-full flex items-center justify-center text-neutral-500"
+              >
+                <UIcon name="i-lucide-image" class="size-10" />
+              </div>
+              <div
+                class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+              >
+                <UIcon name="i-lucide-camera" class="size-6 text-white" />
+              </div>
+              <input
+                ref="editImageInputRef"
+                type="file"
+                class="hidden"
+                accept="image/*"
+                @change="handleEditImageSelect"
+              />
+            </div>
+          </div>
+
+          <!-- Genre -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-300 mb-2">
+              {{ $t("song.primary_genre") }}
+            </label>
+            <USelectMenu
+              v-model="editForm.genres"
+              multiple
+              :items="availableGenres"
+              label-key="Name"
+              value-key="Id"
+              :placeholder="$t('song.genre_placeholder')"
+              size="lg"
+              :ui="{
+                base: 'bg-[#3E3E3E] text-white rounded-md',
+              }"
+              :ui-menu="{
+                background: 'bg-[#282828] border border-neutral-700',
+                option: { active: 'bg-[#3E3E3E]' },
+              }"
+            >
+              <template #item="{ item }">
+                <span class="truncate">{{ item.Name || item.GenreName }}</span>
+              </template>
+            </USelectMenu>
+          </div>
+
+          <!-- Lyrics -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-300 mb-2">
+              {{ $t("song.lyrics") }}
+            </label>
+            <textarea
+              v-model="editForm.lyrics"
+              :placeholder="$t('song.lyrics_placeholder')"
+              rows="4"
+              class="w-full bg-[#3E3E3E] text-white px-4 py-3 rounded-md border border-transparent focus:border-purple-500 outline-none placeholder:text-neutral-500 transition-colors resize-none"
+            ></textarea>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex justify-end gap-3 pt-4">
             <button
-              class="p-1 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+              class="px-6 py-2 text-sm font-medium text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
               @click="closeEditModal"
             >
-              <UIcon name="i-lucide-x" class="size-5" />
-            </button>
-          </div>
-
-          <div class="space-y-5">
-            <!-- Title -->
-            <div>
-              <label class="block text-sm font-medium text-neutral-300 mb-2">
-                {{ $t("song.song_title") }}
-              </label>
-              <input
-                v-model="editForm.title"
-                type="text"
-                :placeholder="$t('song.song_title_placeholder')"
-                class="w-full bg-[#3E3E3E] text-white px-4 py-3 rounded-md border border-transparent focus:border-purple-500 outline-none placeholder:text-neutral-500 transition-colors"
-              />
-            </div>
-
-            <!-- Cover Image -->
-            <div>
-              <label class="block text-sm font-medium text-neutral-300 mb-2">
-                {{ $t("song.cover_image") }}
-              </label>
-              <div
-                class="group relative w-32 h-32 rounded-md overflow-hidden bg-[#3E3E3E] cursor-pointer"
-                @click="triggerEditImageInput"
-              >
-                <img
-                  v-if="editForm.coverPreview"
-                  :src="editForm.coverPreview"
-                  class="w-full h-full object-cover"
-                />
-                <div
-                  v-else
-                  class="w-full h-full flex items-center justify-center text-neutral-500"
-                >
-                  <UIcon name="i-lucide-image" class="size-10" />
-                </div>
-                <div
-                  class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                >
-                  <UIcon name="i-lucide-camera" class="size-6 text-white" />
-                </div>
-                <input
-                  ref="editImageInputRef"
-                  type="file"
-                  class="hidden"
-                  accept="image/*"
-                  @change="handleEditImageSelect"
-                />
-              </div>
-            </div>
-
-            <!-- Genre -->
-            <div>
-              <label class="block text-sm font-medium text-neutral-300 mb-2">
-                {{ $t("song.primary_genre") }}
-              </label>
-              <USelectMenu
-                v-model="editForm.genres"
-                multiple
-                :items="genreOptions"
-                :placeholder="$t('song.genre_placeholder')"
-                size="lg"
-                :ui="{
-                  base: 'bg-[#3E3E3E] text-white rounded-md',
-                }"
-              />
-            </div>
-
-            <!-- Lyrics -->
-            <div>
-              <label class="block text-sm font-medium text-neutral-300 mb-2">
-                {{ $t("song.lyrics") }}
-              </label>
-              <textarea
-                v-model="editForm.lyrics"
-                :placeholder="$t('song.lyrics_placeholder')"
-                rows="4"
-                class="w-full bg-[#3E3E3E] text-white px-4 py-3 rounded-md border border-transparent focus:border-purple-500 outline-none placeholder:text-neutral-500 transition-colors resize-none"
-              ></textarea>
-            </div>
-
-            <!-- Buttons -->
-            <div class="flex justify-end gap-3 pt-4">
-              <button
-                class="px-6 py-2 text-sm font-medium text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-                @click="closeEditModal"
-              >
-                {{ $t("song.cancel") }}
-              </button>
-              <button
-                :disabled="isSaving"
-                class="px-6 py-2 text-sm font-bold bg-purple-500 hover:bg-purple-400 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50"
-                @click="handleEditSave"
-              >
-                <span v-if="isSaving">...</span>
-                <span v-else>{{ $t("song.save_changes") }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- Delete Confirmation Modal -->
-    <Transition name="fade">
-      <div
-        v-if="isDeleteConfirmOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-        @click="isDeleteConfirmOpen = false"
-      >
-        <div
-          class="bg-[#282828] rounded-lg p-6 max-w-sm w-full mx-4 border border-white/10"
-          @click.stop
-        >
-          <h3 class="text-lg font-bold mb-2">
-            {{ $t("song.confirm_delete") }}
-          </h3>
-          <p class="text-sm text-neutral-400 mb-6">
-            {{ $t("song.delete_song_confirmation") }}
-          </p>
-          <div class="flex justify-end gap-3">
-            <button
-              class="px-4 py-2 text-sm text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-              @click="isDeleteConfirmOpen = false"
-            >
               {{ $t("song.cancel") }}
             </button>
             <button
-              :disabled="isDeleting"
-              class="px-4 py-2 text-sm font-bold bg-red-600 hover:bg-red-500 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50"
-              @click="handleDeleteSong"
+              :disabled="isSaving"
+              class="px-6 py-2 text-sm font-bold bg-purple-500 hover:bg-purple-400 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50"
+              @click="handleEditSave"
             >
-              {{ $t("song.delete") }}
+              <span v-if="isSaving">...</span>
+              <span v-else>{{ $t("song.save_changes") }}</span>
             </button>
           </div>
         </div>
       </div>
-    </Transition>
+    </div>
+  </Transition>
 
-    <!-- Bulk Delete Confirmation Modal -->
-    <Transition name="fade">
+  <!-- Delete Confirmation Modal -->
+  <Transition name="fade">
+    <div
+      v-if="isDeleteConfirmOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      @click="isDeleteConfirmOpen = false"
+    >
       <div
-        v-if="isBulkDeleteConfirmOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-        @click="isBulkDeleteConfirmOpen = false"
+        class="bg-[#282828] rounded-lg p-6 max-w-sm w-full mx-4 border border-white/10"
+        @click.stop
       >
-        <div
-          class="bg-[#282828] rounded-lg p-6 max-w-sm w-full mx-4 border border-white/10"
-          @click.stop
-        >
-          <h3 class="text-lg font-bold mb-2">
-            {{ $t("song.confirm_delete") }}
-          </h3>
-          <p class="text-sm text-neutral-400 mb-6">
-            {{
-              $t("song.bulk_delete_confirmation", {
-                count: selectedSongs.length,
-              })
-            }}
-          </p>
-          <div class="flex justify-end gap-3">
-            <button
-              class="px-4 py-2 text-sm text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-              @click="isBulkDeleteConfirmOpen = false"
-            >
-              {{ $t("song.cancel") }}
-            </button>
-            <button
-              :disabled="isDeleting"
-              class="px-4 py-2 text-sm font-bold bg-red-600 hover:bg-red-500 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50"
-              @click="handleBulkDelete"
-            >
-              {{ $t("song.delete") }}
-            </button>
-          </div>
+        <h3 class="text-lg font-bold mb-2">
+          {{ $t("song.confirm_delete") }}
+        </h3>
+        <p class="text-sm text-neutral-400 mb-6">
+          {{ $t("song.delete_song_confirmation") }}
+        </p>
+        <div class="flex justify-end gap-3">
+          <button
+            class="px-4 py-2 text-sm text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            @click="isDeleteConfirmOpen = false"
+          >
+            {{ $t("song.cancel") }}
+          </button>
+          <button
+            :disabled="isDeleting"
+            class="px-4 py-2 text-sm font-bold bg-red-600 hover:bg-red-500 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50"
+            @click="handleDeleteSong"
+          >
+            {{ $t("song.delete") }}
+          </button>
         </div>
       </div>
-    </Transition>
-  </div>
+    </div>
+  </Transition>
+
+  <!-- Bulk Delete Confirmation Modal -->
+  <Transition name="fade">
+    <div
+      v-if="isBulkDeleteConfirmOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      @click="isBulkDeleteConfirmOpen = false"
+    >
+      <div
+        class="bg-[#282828] rounded-lg p-6 max-w-sm w-full mx-4 border border-white/10"
+        @click.stop
+      >
+        <h3 class="text-lg font-bold mb-2">
+          {{ $t("song.confirm_delete") }}
+        </h3>
+        <p class="text-sm text-neutral-400 mb-6">
+          {{
+            $t("song.bulk_delete_confirmation", {
+              count: selectedSongs.length,
+            })
+          }}
+        </p>
+        <div class="flex justify-end gap-3">
+          <button
+            class="px-4 py-2 text-sm text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            @click="isBulkDeleteConfirmOpen = false"
+          >
+            {{ $t("song.cancel") }}
+          </button>
+          <button
+            :disabled="isDeleting"
+            class="px-4 py-2 text-sm font-bold bg-red-600 hover:bg-red-500 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50"
+            @click="handleBulkDelete"
+          >
+            {{ $t("song.delete") }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <script setup>
@@ -606,10 +617,20 @@ import { useDominantColor } from "~/composables/useDominantColor";
 import musicApi from "~/api/musicApi";
 import fileApi from "~/api/fileApi";
 import { usePlayerStore } from "~/stores/usePlayerStore";
+import { formatNumber } from "~/utils/formatNumber";
 
 const { t } = useI18n();
 const toast = useToast();
 const playerStore = usePlayerStore();
+const { user } = useAuth();
+
+// Guard: redirect regular users away
+if (import.meta.client) {
+  const role = user.value?.role;
+  if (!role || role === "User") {
+    navigateTo("/");
+  }
+}
 
 // State
 const songs = ref([]);
@@ -718,14 +739,6 @@ const toggleSelectSong = (songId) => {
   }
 };
 
-// Genre options
-const genreOptions = computed(() =>
-  availableGenres.value.map((g) => ({
-    label: g.Name || g.GenreName,
-    value: g.GenreId || g.Id,
-  })),
-);
-
 // Edit form
 const editForm = reactive({
   songId: null,
@@ -768,7 +781,7 @@ const fetchMySongs = async () => {
 const fetchGenres = async () => {
   try {
     const res = await musicApi.getGenres();
-    availableGenres.value = res.Data || res.data || res || [];
+    availableGenres.value = res?.Data || res?.data || res || [];
   } catch (error) {
     console.error("Error fetching genres:", error);
   }
@@ -878,9 +891,9 @@ const openSongMenu = (song) => {
 
 // Edit Modal
 const openEditModal = (song) => {
-  editForm.songId = song.SongId;
+  editForm.songId = song.Id || song.SongId;
   editForm.title = song.Title;
-  editForm.genres = song.Genres?.map((g) => g.GenreId || g.Id) || [];
+  editForm.genres = song.GenreIds || [];
   editForm.lyrics = song.Lyrics || "";
   editForm.coverPreview = song.Thumbnail;
   editForm.coverFile = null;
@@ -917,8 +930,8 @@ const handleEditSave = async () => {
     let thumbnailUrl = editForm.coverPreview;
 
     if (editForm.coverFile) {
-      const uploadRes = await fileApi.uploadDirect(editForm.coverFile, "image");
-      thumbnailUrl = uploadRes.secure_url;
+      const uploadRes = await fileApi.uploadImage(editForm.coverFile);
+      thumbnailUrl = uploadRes.Url || uploadRes.url;
     }
 
     await musicApi.updateSong(editForm.songId, {

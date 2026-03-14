@@ -351,6 +351,7 @@ const createNewPlaylist = async () => {
       Title: props.songTitle
         ? `${t("playlist.my_playlist")} #${playlists.value.length + 1}`
         : `${t("playlist.my_playlist")} #${playlists.value.length + 1}`,
+      IsPublic: true,
     });
 
     const newPlaylist = res.Data || res;

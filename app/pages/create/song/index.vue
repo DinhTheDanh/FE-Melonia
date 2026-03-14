@@ -455,9 +455,11 @@ const uploadCoverImage = async () => {
   if (!form.coverImageFile) return "";
   try {
     updateUploadStatus($t("song.upload_cover_image"), 10);
-    const imgRes = await fileApi.uploadDirect(form.coverImageFile, "image");
+    const imgRes = await fileApi.uploadImage(form.coverImageFile, (percent) => {
+      uploadPercent.value = Math.min(10 + percent * 0.2, 30);
+    });
     updateUploadStatus($t("song.upload_cover_image"), 30);
-    return imgRes.secure_url;
+    return imgRes.Url || imgRes.url;
   } catch (error) {
     console.error("Error uploading cover image:", error);
     throw error;
@@ -492,18 +494,14 @@ const checkAndUploadAudio = async () => {
       uploadFileInfo.value = filename;
       uploadFileSize.value = `${(form.audioFile.size / 1024 / 1024).toFixed(2)} MB`;
 
-      const audioRes = await fileApi.uploadDirect(
-        form.audioFile,
-        "video",
-        (percent) => {
-          uploadPercent.value = Math.min(40 + percent * 0.5, 90);
-        },
-      );
-      console.log("Cloudinary Response:", audioRes);
+      const audioRes = await fileApi.uploadAudio(form.audioFile, (percent) => {
+        uploadPercent.value = Math.min(40 + percent * 0.5, 90);
+      });
+      console.log("Upload Response:", audioRes);
 
       return {
-        audioUrl: audioRes.secure_url,
-        duration: audioRes.duration,
+        audioUrl: audioRes.Url || audioRes.url,
+        duration: audioRes.Duration || form.duration,
         fileHash: fileHash,
       };
     }

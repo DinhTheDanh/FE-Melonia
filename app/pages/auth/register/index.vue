@@ -275,10 +275,12 @@ definePageMeta({
 });
 
 const { t } = useI18n();
+const router = useRouter();
 const formRef = ref();
 const isLoading = ref(false);
 const { saveTokens } = useAuth();
 const config = useRuntimeConfig();
+const toast = useToast();
 
 const currentStep = ref(1);
 const showPassword = ref(false);
@@ -347,12 +349,33 @@ async function finalSubmit() {
   isLoading.value = true;
   try {
     const payload = {
-      ...state,
+      Username: state.email.split("@")[0],
+      Email: state.email,
+      Password: state.password,
+      FullName: state.name,
     };
-    // await authApi.register(payload);
-    router.push("/");
+    const res = await authApi.register(payload);
+    const saved = saveTokens(res);
+    if (saved) {
+      await navigateTo("/", { replace: true });
+    } else {
+      toast.add({
+        title: t("notify.error"),
+        description: res?.Message || t("auth.register.error"),
+        color: "red",
+      });
+    }
   } catch (error) {
     console.error(error);
+    const msg =
+      error?.response?.data?.Message ||
+      error?.response?.data?.message ||
+      t("auth.register.error");
+    toast.add({
+      title: t("notify.error"),
+      description: msg,
+      color: "red",
+    });
   } finally {
     isLoading.value = false;
   }

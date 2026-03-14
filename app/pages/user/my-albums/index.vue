@@ -522,8 +522,8 @@ const handleEditAlbumSave = async () => {
 
     // Upload new image if selected
     if (editAlbumForm.imageFile) {
-      const res = await fileApi.uploadDirect(editAlbumForm.imageFile, "image");
-      thumbnailUrl = res.secure_url;
+      const res = await fileApi.uploadImage(editAlbumForm.imageFile);
+      thumbnailUrl = res.Url || res.url;
     }
 
     const payload = {
@@ -640,12 +640,8 @@ const handleCreateAlbum = async () => {
   try {
     let thumbnailUrl = null;
     if (createAlbumForm.imageFile) {
-      // Upload trực tiếp lên Cloudinary
-      const res = await fileApi.uploadDirect(
-        createAlbumForm.imageFile,
-        "image",
-      );
-      thumbnailUrl = res.secure_url;
+      const res = await fileApi.uploadImage(createAlbumForm.imageFile);
+      thumbnailUrl = res.Url || res.url;
     }
 
     const payload = {

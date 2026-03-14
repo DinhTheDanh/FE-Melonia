@@ -9,6 +9,20 @@
           <UIcon name="i-lucide-arrow-left" class="size-6 text-white" />
         </button>
         <h1 class="text-3xl font-bold text-white">{{ title }}</h1>
+        <div class="ml-auto relative">
+          <div class="flex items-center w-64">
+            <UIcon
+              name="i-lucide-search"
+              class="absolute left-3 size-4 text-neutral-400"
+            />
+            <input
+              v-model="searchQuery"
+              type="text"
+              :placeholder="$t('header.search_placeholder')"
+              class="w-full h-9 bg-[#242424] text-white text-sm pl-9 pr-4 rounded-full border border-transparent focus:border-white/20 focus:bg-[#2a2a2a] outline-none placeholder:text-neutral-500 transition-all"
+            />
+          </div>
+        </div>
       </div>
 
       <!-- Loading -->
@@ -25,7 +39,7 @@
         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
       >
         <div
-          v-for="song in songs"
+          v-for="song in filteredSongs"
           :key="song.Id"
           class="group hover:bg-[#282828] rounded-lg p-4 transition-all duration-300 cursor-pointer"
           @click="playSong(song)"
@@ -56,11 +70,27 @@
           <p class="text-neutral-400 text-xs mt-1 truncate">
             {{ song.ArtistNames || $t("home.unknown_artist") }}
           </p>
+          <div
+            v-if="song.LikeCount || song.ListenCount"
+            class="flex items-center gap-3 mt-1.5 text-neutral-500 text-xs"
+          >
+            <span v-if="song.LikeCount" class="flex items-center gap-1">
+              <UIcon name="i-lucide-heart" class="size-3" />
+              {{ formatNumber(song.LikeCount) }}
+            </span>
+            <span v-if="song.ListenCount" class="flex items-center gap-1">
+              <UIcon name="i-lucide-headphones" class="size-3" />
+              {{ formatNumber(song.ListenCount) }}
+            </span>
+          </div>
         </div>
       </div>
 
       <!-- Empty -->
-      <div v-if="!isLoading && songs.length === 0" class="text-center py-20">
+      <div
+        v-if="!isLoading && filteredSongs.length === 0"
+        class="text-center py-20"
+      >
         <UIcon
           name="i-lucide-music"
           class="size-16 text-neutral-600 mb-4 mx-auto"
@@ -75,6 +105,7 @@
 import musicApi from "~/api/musicApi";
 import recommendationApi from "~/api/recommendationApi";
 import { usePlayerStore } from "~/stores/usePlayerStore";
+import { formatNumber } from "~/utils/formatNumber";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -83,10 +114,26 @@ const { user } = useAuth();
 
 const isLoading = ref(true);
 const songs = ref([]);
+const searchQuery = ref("");
+
+const filteredSongs = computed(() => {
+  if (!searchQuery.value.trim()) return songs.value;
+  const q = searchQuery.value.toLowerCase().trim();
+  return songs.value.filter(
+    (s) =>
+      (s.Title || "").toLowerCase().includes(q) ||
+      (s.ArtistNames || "").toLowerCase().includes(q),
+  );
+});
 
 const type = computed(() => route.query.type || "popular");
+const genreId = computed(() => route.query.genreId || null);
+const genreName = computed(() =>
+  route.query.genreName ? decodeURIComponent(route.query.genreName) : null,
+);
 
 const title = computed(() => {
+  if (type.value === "genre" && genreName.value) return genreName.value;
   if (type.value === "recommended") return t("home.recommended_songs");
   return t("home.popular_songs");
 });
@@ -98,7 +145,15 @@ const playSong = (song) => {
 
 onMounted(async () => {
   try {
-    if (type.value === "recommended" && user.value?.id) {
+    if (type.value === "genre" && genreId.value) {
+      // Fetch songs filtered by genre
+      const res = await musicApi.getSongs({
+        genreId: genreId.value,
+        pageIndex: 1,
+        pageSize: 50,
+      });
+      songs.value = res.Data || res || [];
+    } else if (type.value === "recommended" && user.value?.id) {
       const res = await recommendationApi.getRecommendedSongs(
         user.value.id,
         50,

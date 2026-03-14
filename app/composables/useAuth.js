@@ -2,6 +2,8 @@
  * Auth composable for managing authentication state
  */
 import authApi from "~/api/authApi";
+import { usePlayerStore } from "~/stores/usePlayerStore";
+import { useLikedSongsStore } from "~/stores/useLikedSongsStore";
 
 export const useAuth = () => {
   const jwt = useCookie("jwt");
@@ -67,6 +69,30 @@ export const useAuth = () => {
       // Also clear refreshToken cookie if it exists
       document.cookie =
         "refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+      // Clear all persisted store data from localStorage
+      try {
+        localStorage.removeItem("music-player");
+        // Clear any other app-specific keys
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key) keysToRemove.push(key);
+        }
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+      } catch (e) {
+        // localStorage may not be available
+      }
+
+      // Reset Pinia stores in memory
+      try {
+        const playerStore = usePlayerStore();
+        playerStore.$reset();
+        const likedSongsStore = useLikedSongsStore();
+        likedSongsStore.$reset();
+      } catch (e) {
+        // Store may not be initialized
+      }
     }
 
     // Redirect to login

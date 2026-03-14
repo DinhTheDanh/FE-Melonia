@@ -39,9 +39,10 @@ export const useLikedSongsStore = defineStore("likedSongs", {
 
     async toggleLike(songId) {
       try {
-        await interactionApi.likeSong({ songId });
+        const res = await interactionApi.likeSong({ songId });
+        const wasLiked = this.likedSongIds.has(songId);
 
-        if (this.likedSongIds.has(songId)) {
+        if (wasLiked) {
           // Unlike
           this.likedSongIds = new Set(
             [...this.likedSongIds].filter((id) => id !== songId),
@@ -51,9 +52,11 @@ export const useLikedSongsStore = defineStore("likedSongs", {
           );
           this.totalCount = Math.max(0, this.totalCount - 1);
         } else {
-          // Like
+          // Like — add to Set and re-fetch to get full song data
           this.likedSongIds = new Set([...this.likedSongIds, songId]);
           this.totalCount++;
+          // Re-fetch to get full song objects including newly liked
+          await this.fetchLikedSongs();
         }
 
         return true;

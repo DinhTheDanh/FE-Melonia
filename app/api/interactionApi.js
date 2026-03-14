@@ -39,6 +39,13 @@ const interactionApi = {
     return axiosClient.delete(`/Interaction/playlist/${playlistId}`);
   },
 
+  // Chuyển đổi trạng thái công khai/riêng tư của playlist
+  togglePlaylistVisibility(playlistId) {
+    return axiosClient.patch(
+      `/Interaction/playlist/${playlistId}/toggle-visibility`,
+    );
+  },
+
   // Lấy chi tiết playlist
   getPlaylistDetails(playlistId, params) {
     return axiosClient.get(`/Interaction/playlist/${playlistId}`, { params });
@@ -59,6 +66,11 @@ const interactionApi = {
     return axiosClient.delete(
       `/Interaction/album/${albumId}/remove-song/${songId}`,
     );
+  },
+
+  // Ghi nhận lượt nghe bài hát
+  recordPlay(data) {
+    return axiosClient.post(`/Interaction/record-play`, data);
   },
 };
 export default interactionApi;

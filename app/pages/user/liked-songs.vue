@@ -1,7 +1,34 @@
 <template>
   <div class="min-h-screen pb-8">
+    <!-- Sticky Header (appears when scrolled past cover) -->
+    <div
+      v-show="showStickyHeader"
+      class="sticky top-0 z-30 px-6 py-3 flex items-center gap-4 transition-all duration-300"
+      style="background-color: #1e1344"
+    >
+      <button
+        class="w-12 h-12 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg shadow-black/40 cursor-pointer"
+        @click="togglePlayAllLiked"
+      >
+        <UIcon
+          v-if="isPlayingLikedSongs"
+          name="i-fa6-solid-pause"
+          class="size-5 text-white"
+        />
+        <UIcon
+          v-else
+          name="i-fa6-solid-play"
+          class="size-5 text-white ml-0.5"
+        />
+      </button>
+      <h2 class="text-2xl font-bold text-white truncate">
+        {{ t("liked_songs.title") }}
+      </h2>
+    </div>
+
     <!-- Spotify-style Liked Songs Header -->
     <div
+      ref="headerRef"
       class="relative -mx-4 -mt-4 px-8 pt-16 pb-8"
       style="
         background: linear-gradient(
@@ -36,9 +63,12 @@
               :alt="userData?.FullName"
               size="xs"
             />
-            <span class="font-semibold hover:underline cursor-pointer">
+            <NuxtLink
+              to="/user/profile"
+              class="font-semibold hover:underline cursor-pointer"
+            >
               {{ userData?.FullName || t("home.unknown_artist") }}
-            </span>
+            </NuxtLink>
             <span class="text-neutral-400">·</span>
             <span>{{ totalCount }} {{ t("liked_songs.songs_count") }}</span>
           </div>
@@ -46,12 +76,11 @@
       </div>
     </div>
 
-    <!-- Sticky Action Bar -->
-    <div
-      ref="actionBarRef"
-      class="sticky top-0 z-20 flex items-center gap-6 px-8 py-4 transition-colors duration-300"
-      :class="isScrolled ? 'bg-[#1a1040]' : 'bg-transparent'"
-    >
+    <!-- Sentinel for sticky header detection -->
+    <div ref="headerSentinel" class="h-px w-full"></div>
+
+    <!-- Action Bar -->
+    <div ref="actionBarRef" class="flex items-center gap-6 px-8 py-4">
       <!-- Big Play Button -->
       <button
         class="w-14 h-14 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg shadow-black/40 cursor-pointer"
@@ -192,6 +221,12 @@
           </p>
         </div>
 
+        <!-- Plays -->
+        <div v-if="song.ListenCount" class="hidden md:flex items-center gap-1 text-xs text-neutral-500">
+          <UIcon name="i-lucide-headphones" class="size-3" />
+          {{ formatNumber(song.ListenCount) }}
+        </div>
+
         <!-- Duration + Actions -->
         <div class="flex items-center justify-end gap-2">
           <!-- Context Menu -->
@@ -239,6 +274,7 @@ import interactionApi from "~/api/interactionApi";
 import userApi from "~/api/userApi";
 import { usePlayerStore } from "~/stores/usePlayerStore";
 import { useLikedSongsStore } from "~/stores/useLikedSongsStore";
+import { formatNumber } from "~/utils/formatNumber";
 
 const { t } = useI18n();
 const playerStore = usePlayerStore();
@@ -250,8 +286,11 @@ const totalCount = ref(0);
 const pageIndex = ref(1);
 const pageSize = 30;
 const userData = ref(null);
-const isScrolled = ref(false);
 const actionBarRef = ref(null);
+const headerRef = ref(null);
+
+// Sticky header via composable
+const { showStickyHeader, headerSentinel } = useStickyHeader();
 
 // Drag & drop
 const likedDragIdx = ref(null);
@@ -381,14 +420,7 @@ const fetchUserData = async () => {
   }
 };
 
-// Scroll detection for sticky bar
-const handleScroll = () => {
-  const scrollContainer = document.querySelector(".flex-1.overflow-y-auto");
-  if (scrollContainer) {
-    isScrolled.value = scrollContainer.scrollTop > 300;
-  }
-};
-
+// Intersection Observer for sticky header
 onMounted(() => {
   fetchLikedSongs();
   fetchUserData();
@@ -397,41 +429,37 @@ onMounted(() => {
   if (!likedSongsStore.isLoaded) {
     likedSongsStore.fetchLikedSongs();
   }
-
-  nextTick(() => {
-    const scrollContainer = document.querySelector(".flex-1.overflow-y-auto");
-    if (scrollContainer) {
-      scrollContainer.addEventListener("scroll", handleScroll);
-    }
-  });
 });
 
 // Watch for changes in likedSongsStore (when user likes/unlikes from other pages)
 watch(
   () => likedSongsStore.likedSongs,
   (newLikedSongs) => {
-    if (newLikedSongs && newLikedSongs.length > 0) {
-      // Sync local songs with store
-      // Only update if we have loaded initial data
-      if (!isLoading.value) {
-        // Get current song IDs from store
-        const storeIds = new Set(newLikedSongs.map((s) => s.Id || s.SongId));
+    if (isLoading.value) return;
 
-        // Remove songs that are no longer liked
-        songs.value = songs.value.filter((s) => storeIds.has(s.Id || s.SongId));
+    // Sync local songs list from store data
+    const storeIds = new Set(
+      (newLikedSongs || []).map((s) => s.Id || s.SongId).filter(Boolean),
+    );
 
-        // Update total count
-        totalCount.value = likedSongsStore.totalCount;
-      }
+    // Remove unliked songs from local list
+    const currentIds = new Set(
+      songs.value.map((s) => s.Id || s.SongId).filter(Boolean),
+    );
+
+    // Filter out songs no longer liked
+    songs.value = songs.value.filter((s) => storeIds.has(s.Id || s.SongId));
+
+    // Add newly liked songs that aren't in our local list yet
+    const newSongs = (newLikedSongs || []).filter(
+      (s) => !currentIds.has(s.Id || s.SongId),
+    );
+    if (newSongs.length > 0) {
+      songs.value = [...newSongs, ...songs.value];
     }
+
+    totalCount.value = likedSongsStore.totalCount;
   },
   { deep: true },
 );
-
-onUnmounted(() => {
-  const scrollContainer = document.querySelector(".flex-1.overflow-y-auto");
-  if (scrollContainer) {
-    scrollContainer.removeEventListener("scroll", handleScroll);
-  }
-});
 </script>

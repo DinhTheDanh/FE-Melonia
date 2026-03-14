@@ -50,6 +50,19 @@
           <p class="text-neutral-400 text-xs mt-1 truncate">
             {{ song.ArtistNames || t("home.unknown_artist") }}
           </p>
+          <div
+            v-if="song.LikeCount || song.ListenCount"
+            class="flex items-center gap-3 mt-1.5 text-neutral-500 text-xs"
+          >
+            <span v-if="song.LikeCount" class="flex items-center gap-1">
+              <UIcon name="i-lucide-heart" class="size-3" />
+              {{ formatNumber(song.LikeCount) }}
+            </span>
+            <span v-if="song.ListenCount" class="flex items-center gap-1">
+              <UIcon name="i-lucide-headphones" class="size-3" />
+              {{ formatNumber(song.ListenCount) }}
+            </span>
+          </div>
         </div>
       </div>
     </section>
@@ -91,7 +104,7 @@
             </div>
             <button
               class="absolute bottom-2 right-2 w-12 h-12 bg-primary-500 hover:bg-primary-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 shadow-lg shadow-black/60 hover:scale-105 cursor-pointer"
-              @click.prevent
+              @click.prevent="playAlbum(album)"
             >
               <UIcon name="i-fa6-solid-play" class="size-4 text-white ml-0.5" />
             </button>
@@ -122,9 +135,10 @@
         </NuxtLink>
       </div>
       <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
-        <div
+        <NuxtLink
           v-for="artist in artists.slice(0, 6)"
-          :key="artist.Id || artist.ArtistId"
+          :key="artist.UserId || artist.Id || artist.ArtistId"
+          :to="`/artist/${artist.UserId || artist.Id || artist.ArtistId}`"
           class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
         >
           <div class="relative mb-4">
@@ -142,6 +156,7 @@
             </div>
             <button
               class="absolute bottom-2 right-2 w-12 h-12 bg-primary-500 hover:bg-primary-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 shadow-lg shadow-black/60 hover:scale-105 cursor-pointer"
+              @click.prevent="playArtist(artist)"
             >
               <UIcon name="i-fa6-solid-play" class="size-4 text-white ml-0.5" />
             </button>
@@ -150,9 +165,15 @@
             {{ artist.FullName || artist.ArtistName }}
           </p>
           <p class="text-neutral-400 text-xs mt-1 text-center">
-            {{ t("home.artist_label") }}
+            {{
+              artist.FollowerCount != null
+                ? formatNumber(artist.FollowerCount) +
+                  " " +
+                  t("artist.followers")
+                : t("home.artist_label")
+            }}
           </p>
-        </div>
+        </NuxtLink>
       </div>
     </section>
 
@@ -204,6 +225,19 @@
           <p class="text-neutral-400 text-xs mt-1 truncate">
             {{ song.ArtistNames || t("home.unknown_artist") }}
           </p>
+          <div
+            v-if="song.LikeCount || song.ListenCount"
+            class="flex items-center gap-3 mt-1.5 text-neutral-500 text-xs"
+          >
+            <span v-if="song.LikeCount" class="flex items-center gap-1">
+              <UIcon name="i-lucide-heart" class="size-3" />
+              {{ formatNumber(song.LikeCount) }}
+            </span>
+            <span v-if="song.ListenCount" class="flex items-center gap-1">
+              <UIcon name="i-lucide-headphones" class="size-3" />
+              {{ formatNumber(song.ListenCount) }}
+            </span>
+          </div>
         </div>
       </div>
     </section>
@@ -245,7 +279,7 @@
             </div>
             <button
               class="absolute bottom-2 right-2 w-12 h-12 bg-primary-500 hover:bg-primary-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 shadow-lg shadow-black/60 hover:scale-105 cursor-pointer"
-              @click.prevent
+              @click.prevent="playAlbum(album)"
             >
               <UIcon name="i-fa6-solid-play" class="size-4 text-white ml-0.5" />
             </button>
@@ -292,6 +326,7 @@ import artistApi from "~/api/artistApi";
 import recommendationApi from "~/api/recommendationApi";
 import interactionApi from "~/api/interactionApi";
 import { usePlayerStore } from "~/stores/usePlayerStore";
+import { formatNumber } from "~/utils/formatNumber";
 
 const { t } = useI18n();
 const { user } = useAuth();
@@ -310,6 +345,53 @@ const artists = ref([]);
 const playSong = (song, queue) => {
   const index = queue.findIndex((s) => s.Id === song.Id);
   playerStore.playTrack(song, queue, index >= 0 ? index : 0);
+};
+
+// Play all songs by an artist
+const playArtist = async (artist) => {
+  const artistId = artist.UserId || artist.Id || artist.ArtistId;
+  if (!artistId) return;
+  try {
+    const res = await artistApi.getSongsByArtistId(artistId, {
+      pageIndex: 1,
+      pageSize: 50,
+    });
+    const artistSongs = res?.Data || res?.Items || res || [];
+    if (artistSongs.length > 0) {
+      playerStore.playTrack(artistSongs[0], artistSongs, 0);
+    }
+  } catch (error) {
+    console.error("Error playing artist:", error);
+  }
+};
+
+// Play all songs in an album
+const playAlbum = async (album) => {
+  const albumId = album.AlbumId || album.Id;
+  if (!albumId) return;
+  try {
+    const res = await musicApi.getAlbumDetail(albumId, { pageSize: 100 });
+    let albumSongs = [];
+    if (res?.Songs?.Data) {
+      albumSongs = res.Songs.Data;
+    } else if (res?.data?.Songs?.Data) {
+      albumSongs = res.data.Songs.Data;
+    }
+    if (albumSongs.length > 0) {
+      // Map to player format
+      const queue = albumSongs.map((s) => ({
+        Id: s.SongId || s.Id,
+        Title: s.Title,
+        ArtistNames: s.ArtistNames || "Unknown Artist",
+        Thumbnail: s.Thumbnail,
+        FileUrl: s.FileUrl,
+        Duration: s.Duration,
+      }));
+      playerStore.playTrack(queue[0], queue, 0);
+    }
+  } catch (error) {
+    console.error("Error playing album:", error);
+  }
 };
 
 // Fetch all data

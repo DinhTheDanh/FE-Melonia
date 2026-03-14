@@ -329,6 +329,7 @@ const showArtistSubmenu = ref(false);
 const playlistSearch = ref("");
 const playlists = ref([]);
 const isLoadingPlaylists = ref(false);
+const songInPlaylistIds = ref(new Set());
 
 // Toggle menu & position calculation
 const toggleMenu = () => {
@@ -380,6 +381,9 @@ const closeMenu = () => {
   showPlaylistSubmenu.value = false;
   showArtistSubmenu.value = false;
   playlistSearch.value = "";
+  // Reset so next open re-checks song membership
+  songInPlaylistIds.value = new Set();
+  playlists.value = [];
 };
 
 // Click outside to close
@@ -467,11 +471,16 @@ const artistList = computed(() => {
 });
 
 const filteredPlaylists = computed(() => {
-  if (!playlistSearch.value) return playlists.value;
-  const q = playlistSearch.value.toLowerCase();
-  return playlists.value.filter((p) =>
-    (p.Title || p.Name || "").toLowerCase().includes(q),
+  let list = playlists.value.filter(
+    (p) => !songInPlaylistIds.value.has(String(p.PlaylistId || p.Id)),
   );
+  if (playlistSearch.value) {
+    const q = playlistSearch.value.toLowerCase();
+    list = list.filter((p) =>
+      (p.Title || p.Name || "").toLowerCase().includes(q),
+    );
+  }
+  return list;
 });
 
 // Methods
@@ -497,16 +506,47 @@ const getSubmenuThumb = (playlist) => {
 };
 
 const fetchPlaylists = async () => {
-  if (playlists.value.length > 0) return;
+  if (playlists.value.length > 0) {
+    // Already fetched, just re-check song membership
+    await checkSongInPlaylists();
+    return;
+  }
   isLoadingPlaylists.value = true;
   try {
     const res = await musicApi.getMyPlaylists({ pageIndex: 1, pageSize: 50 });
     playlists.value = res.Data || res || [];
+    await checkSongInPlaylists();
   } catch (error) {
     console.error("Failed to fetch playlists:", error);
   } finally {
     isLoadingPlaylists.value = false;
   }
+};
+
+// Check which playlists already contain the current song
+const checkSongInPlaylists = async () => {
+  const currentSongId = String(songId.value);
+  const ids = new Set();
+  const checks = playlists.value.map(async (playlist) => {
+    try {
+      const id = playlist.PlaylistId || playlist.Id;
+      const res = await interactionApi.getPlaylistDetails(id, {
+        pageIndex: 1,
+        pageSize: 200,
+      });
+      const songs = res?.Songs?.Data || res?.songs?.data || res?.Data || [];
+      const found = songs.some(
+        (s) => String(s.Id || s.SongId) === currentSongId,
+      );
+      if (found) {
+        ids.add(String(id));
+      }
+    } catch (e) {
+      // Ignore
+    }
+  });
+  await Promise.all(checks);
+  songInPlaylistIds.value = ids;
 };
 
 const addToPlaylist = async (playlist) => {
@@ -516,6 +556,9 @@ const addToPlaylist = async (playlist) => {
       playlistId,
       songId: songId.value,
     });
+    // Mark this playlist as containing the song so it's filtered out
+    songInPlaylistIds.value.add(String(playlistId));
+    songInPlaylistIds.value = new Set(songInPlaylistIds.value);
     toast.add({
       title: t("notify.success"),
       description: t("playlist.song_added", {

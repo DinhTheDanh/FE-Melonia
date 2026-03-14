@@ -40,11 +40,23 @@
 
           <!-- Track Info -->
           <div class="min-w-0">
-            <p
-              class="text-sm text-white font-medium truncate hover:underline cursor-pointer"
-            >
-              {{ playerStore.currentTrack.Title }}
-            </p>
+            <div class="flex items-center gap-1.5">
+              <p
+                class="text-sm text-white font-medium truncate hover:underline cursor-pointer"
+              >
+                {{ playerStore.currentTrack.Title }}
+              </p>
+              <!-- Audio Equalizer Animation -->
+              <div
+                v-if="playerStore.isPlaying"
+                class="equalizer-bars flex items-end gap-[2px] h-3 shrink-0"
+              >
+                <span class="eq-bar w-[3px] bg-primary rounded-full"></span>
+                <span class="eq-bar w-[3px] bg-primary rounded-full"></span>
+                <span class="eq-bar w-[3px] bg-primary rounded-full"></span>
+                <span class="eq-bar w-[3px] bg-primary rounded-full"></span>
+              </div>
+            </div>
             <p
               class="text-xs text-neutral-400 truncate hover:text-white hover:underline cursor-pointer"
             >
@@ -276,14 +288,14 @@
         </UTooltip>
 
         <!-- Volume Control -->
-        <div class="flex items-center gap-1 group/volume">
+        <div class="flex items-center gap-1 group/volume min-w-[140px]">
           <UTooltip
             :text="playerStore.isMuted ? t('player.unmute') : t('player.mute')"
             arrow
             :ui="{ content: 'bg-[#282828]' }"
           >
             <button
-              class="p-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              class="p-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-8 h-8 flex items-center justify-center shrink-0"
               @click="playerStore.toggleMute"
             >
               <UIcon :name="volumeIcon" class="size-4" />
@@ -293,7 +305,7 @@
           <!-- Volume Slider -->
           <div
             ref="volumeRef"
-            class="volume-container w-24 h-3 flex items-center cursor-pointer"
+            class="volume-container w-24 h-3 flex items-center cursor-pointer shrink-0"
             @click="handleVolumeClick"
             @mousedown="startVolumeDrag"
           >
@@ -516,6 +528,7 @@
 <script setup>
 import { usePlayerStore } from "~/stores/usePlayerStore";
 import { useLikedSongsStore } from "~/stores/useLikedSongsStore";
+import interactionApi from "~/api/interactionApi";
 
 const playerStore = usePlayerStore();
 const likedSongsStore = useLikedSongsStore();
@@ -523,6 +536,36 @@ const { t } = useI18n();
 const audioRef = ref(null);
 const progressRef = ref(null);
 const volumeRef = ref(null);
+
+// --- Record Play tracking ---
+const playStartTime = ref(null);
+const playingSongId = ref(null);
+
+const recordCurrentPlay = () => {
+  if (!playingSongId.value || playStartTime.value == null) return;
+  const durationListened = Math.floor(
+    (audioRef.value?.currentTime || 0) - (playStartTime.value || 0),
+  );
+  if (durationListened < 5) {
+    // Ignore very short plays (< 5s)
+    playingSongId.value = null;
+    playStartTime.value = null;
+    return;
+  }
+  const completed =
+    audioRef.value &&
+    audioRef.value.duration > 0 &&
+    audioRef.value.currentTime >= audioRef.value.duration - 1;
+  interactionApi
+    .recordPlay({
+      SongId: playingSongId.value,
+      DurationListened: durationListened,
+      Completed: !!completed,
+    })
+    .catch(() => {});
+  playingSongId.value = null;
+  playStartTime.value = null;
+};
 
 // Drag states
 const isDraggingProgress = ref(false);
@@ -761,11 +804,18 @@ const onTimeUpdate = () => {
 };
 
 const onEnded = () => {
+  recordCurrentPlay();
   playerStore.onTrackEnd();
 };
 
 const onPlaying = () => {
   playerStore.setLoading(false);
+  // Start tracking play time when audio actually starts playing
+  if (playerStore.currentTrack && !playingSongId.value) {
+    playingSongId.value =
+      playerStore.currentTrack.Id || playerStore.currentTrack.SongId;
+    playStartTime.value = 0;
+  }
 };
 
 const onPause = () => {};
@@ -839,6 +889,11 @@ watch(
   () => playerStore.currentTrack,
   async (newTrack, oldTrack) => {
     if (!audioRef.value || !newTrack) return;
+
+    // Record play for the previous track before switching
+    if (oldTrack && playingSongId.value) {
+      recordCurrentPlay();
+    }
 
     // Skip initial mount (handled by onMounted)
     if (!oldTrack && hasInitialized.value) return;
@@ -943,6 +998,11 @@ const startVolumeDrag = (e) => {
   document.addEventListener("mousemove", onMove);
   document.addEventListener("mouseup", onUp);
 };
+
+// Record play on page unload (user closes tab/navigates away)
+onBeforeUnmount(() => {
+  recordCurrentPlay();
+});
 </script>
 
 <style scoped>
@@ -954,5 +1014,35 @@ const startVolumeDrag = (e) => {
 .queue-slide-leave-to {
   opacity: 0;
   transform: translateY(10px);
+}
+
+/* Audio Equalizer Bars Animation */
+.equalizer-bars .eq-bar {
+  animation: eq-bounce 1s ease-in-out infinite;
+}
+.equalizer-bars .eq-bar:nth-child(1) {
+  height: 8px;
+  animation-delay: 0s;
+}
+.equalizer-bars .eq-bar:nth-child(2) {
+  height: 12px;
+  animation-delay: 0.15s;
+}
+.equalizer-bars .eq-bar:nth-child(3) {
+  height: 6px;
+  animation-delay: 0.3s;
+}
+.equalizer-bars .eq-bar:nth-child(4) {
+  height: 10px;
+  animation-delay: 0.45s;
+}
+@keyframes eq-bounce {
+  0%,
+  100% {
+    height: 3px;
+  }
+  50% {
+    height: 12px;
+  }
 }
 </style>

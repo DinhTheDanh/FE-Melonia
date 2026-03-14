@@ -32,17 +32,42 @@
 
     <!-- Playlist Content -->
     <template v-else-if="playlist">
+      <!-- Sticky Header (shows when scrolled past cover) -->
+      <div
+        v-show="showStickyHeader"
+        class="sticky top-0 z-30 px-6 py-3 flex items-center gap-4 transition-all duration-300"
+        :style="{
+          background: `linear-gradient(180deg, ${playlistColor} 0%, ${playlistColorDark} 100%)`,
+        }"
+      >
+        <button
+          class="w-12 h-12 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer"
+          :disabled="songs.length === 0"
+          @click="togglePlayAll"
+        >
+          <UIcon
+            v-if="isPlayingThisPlaylist"
+            name="i-fa6-solid-pause"
+            class="size-5 text-white"
+          />
+          <UIcon
+            v-else
+            name="i-fa6-solid-play"
+            class="size-5 text-white ml-0.5"
+          />
+        </button>
+        <h2 class="text-2xl font-bold text-white truncate">
+          {{ playlist.Title }}
+        </h2>
+      </div>
+
       <!-- Header -->
       <div
+        ref="headerRef"
         class="relative -mx-4 -mt-4 px-8 pt-16 pb-8"
-        style="
-          background: linear-gradient(
-            180deg,
-            #535353 0%,
-            #333333 40%,
-            #121212 100%
-          );
-        "
+        :style="{
+          background: `linear-gradient(180deg, ${playlistColor} 0%, ${playlistColorDark} 40%, #121212 100%)`,
+        }"
       >
         <div class="flex items-end gap-6">
           <!-- Playlist Cover -->
@@ -79,7 +104,11 @@
             <p
               class="text-xs font-bold text-white uppercase tracking-wider mb-2"
             >
-              {{ t("playlist.public_playlist") }}
+              {{
+                isPublic
+                  ? t("playlist.public_playlist")
+                  : t("playlist.private_playlist")
+              }}
             </p>
             <h1
               class="text-5xl font-black text-white leading-tight mb-4 cursor-pointer hover:underline"
@@ -94,9 +123,12 @@
               {{ playlist.Description }}
             </p>
             <div class="flex items-center gap-2 text-sm text-neutral-200">
-              <span class="font-semibold">{{
-                playlist.CreatedBy || t("home.unknown_artist")
-              }}</span>
+              <NuxtLink
+                to="/user/profile"
+                class="font-semibold hover:underline cursor-pointer"
+              >
+                {{ playlist.CreatedBy || t("home.unknown_artist") }}
+              </NuxtLink>
               <span class="text-neutral-400">·</span>
               <span>{{ songs.length }} {{ t("liked_songs.songs_count") }}</span>
               <span v-if="totalDuration" class="text-neutral-400"
@@ -111,7 +143,7 @@
       <div class="flex items-center gap-6 px-8 py-4">
         <!-- Play Button -->
         <button
-          class="w-14 h-14 bg-purple-500 hover:bg-purple-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-14 h-14 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="songs.length === 0"
           @click="togglePlayAll"
         >
@@ -157,6 +189,9 @@
           <UIcon name="i-lucide-list" class="size-5" />
         </div>
       </div>
+
+      <!-- Sentinel for sticky header detection -->
+      <div ref="headerSentinel" class="h-px w-full"></div>
 
       <!-- Songs Table -->
       <div class="px-4">
@@ -243,7 +278,9 @@
             <div class="min-w-0 flex-1">
               <p
                 class="text-sm font-medium truncate"
-                :class="isCurrentTrack(song) ? 'text-purple-500' : 'text-white'"
+                :class="
+                  isCurrentTrack(song) ? 'text-primary-500' : 'text-white'
+                "
               >
                 {{ song.Title }}
               </p>
@@ -262,6 +299,12 @@
             <p class="text-sm text-neutral-400 truncate">
               {{ song.AlbumTitle || "-" }}
             </p>
+          </div>
+
+          <!-- Plays -->
+          <div v-if="song.ListenCount" class="hidden md:flex items-center gap-1 text-xs text-neutral-500">
+            <UIcon name="i-lucide-headphones" class="size-3" />
+            {{ formatNumber(song.ListenCount) }}
           </div>
 
           <!-- Duration + Actions -->
@@ -290,6 +333,80 @@
             {{ t("playlist.empty_title") }}
           </h3>
           <p class="text-neutral-400">{{ t("playlist.empty_description") }}</p>
+        </div>
+      </div>
+
+      <!-- Recommendation Section -->
+      <div
+        v-if="songs.length > 0 && recommendedSongs.length > 0"
+        class="px-4 mt-8 mb-8"
+      >
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white">
+              {{ t("playlist.recommendation_title") }}
+            </h2>
+            <p class="text-sm text-neutral-400 mt-1">
+              {{ t("playlist.recommendation_desc") }}
+            </p>
+          </div>
+          <button
+            class="text-sm font-semibold text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            @click="refreshRecommendations"
+          >
+            {{ t("playlist.find_more") }}
+          </button>
+        </div>
+
+        <div
+          v-for="song in recommendedSongs"
+          :key="song.Id"
+          class="group grid grid-cols-[1fr_1fr_80px] gap-4 px-4 py-2 rounded-md hover:bg-white/10 transition-colors items-center"
+        >
+          <!-- Title & Artist -->
+          <div class="flex items-center gap-3 min-w-0">
+            <img
+              v-if="song.Thumbnail"
+              :src="song.Thumbnail"
+              :alt="song.Title"
+              class="w-10 h-10 rounded object-cover shrink-0"
+            />
+            <div
+              v-else
+              class="w-10 h-10 rounded bg-[#282828] flex items-center justify-center shrink-0"
+            >
+              <UIcon name="i-lucide-music" class="size-4 text-neutral-500" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-white truncate">
+                {{ song.Title }}
+              </p>
+              <p class="text-xs text-neutral-400 truncate">
+                {{
+                  song.ArtistNames?.trim() ||
+                  song.ArtistName?.trim() ||
+                  t("home.unknown_artist")
+                }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Album -->
+          <div class="min-w-0">
+            <p class="text-sm text-neutral-400 truncate">
+              {{ song.AlbumTitle || "-" }}
+            </p>
+          </div>
+
+          <!-- Add Button -->
+          <div class="flex items-center justify-end">
+            <button
+              class="px-4 py-1.5 border border-neutral-500 rounded-full text-sm font-semibold text-white hover:border-white hover:scale-105 transition-all cursor-pointer"
+              @click="addRecommendedSong(song)"
+            >
+              {{ t("playlist.add_button") }}
+            </button>
+          </div>
         </div>
       </div>
     </template>
@@ -462,9 +579,11 @@
 <script setup>
 import interactionApi from "~/api/interactionApi";
 import musicApi from "~/api/musicApi";
+import recommendationApi from "~/api/recommendationApi";
 import fileApi from "~/api/fileApi";
 import { usePlayerStore } from "~/stores/usePlayerStore";
 import { useDebounceFn } from "@vueuse/core";
+import { formatNumber } from "~/utils/formatNumber";
 
 const route = useRoute();
 const router = useRouter();
@@ -478,6 +597,7 @@ const songs = ref([]);
 const isLoading = ref(true);
 const isDeleting = ref(false);
 const showDeleteConfirm = ref(false);
+const isPublic = ref(true);
 
 // Edit Modal State
 const showEditModal = ref(false);
@@ -510,14 +630,22 @@ const addingSongId = ref(null);
 const dragIdx = ref(null);
 const dragOverIdx = ref(null);
 
+// Sticky header
+const headerSentinel = ref(null);
+const showStickyHeader = ref(false);
+let stickyObserver = null;
+
+// Recommendations
+const recommendedSongs = ref([]);
+
 // Playlist header gradient color based on thumbnail
-const playlistColor = ref("#513b8a");
-const playlistColorDark = ref("#2a1a54");
+const playlistColor = ref("#535353");
+const playlistColorDark = ref("#333333");
 
 const extractColor = (thumbnail) => {
   if (!thumbnail) {
-    playlistColor.value = "#513b8a";
-    playlistColorDark.value = "#2a1a54";
+    playlistColor.value = "#535353";
+    playlistColorDark.value = "#333333";
     return;
   }
   const img = new Image();
@@ -533,8 +661,8 @@ const extractColor = (thumbnail) => {
       playlistColor.value = `rgb(${r}, ${g}, ${b})`;
       playlistColorDark.value = `rgb(${Math.floor(r * 0.4)}, ${Math.floor(g * 0.4)}, ${Math.floor(b * 0.4)})`;
     } catch {
-      playlistColor.value = "#513b8a";
-      playlistColorDark.value = "#2a1a54";
+      playlistColor.value = "#535353";
+      playlistColorDark.value = "#333333";
     }
   };
   img.src = thumbnail;
@@ -602,6 +730,14 @@ const fetchPlaylist = async () => {
       // Maybe flat response
       playlist.value = res;
       songs.value = [];
+    }
+
+    // Read IsPublic from playlist data
+    isPublic.value = playlist.value?.IsPublic !== false;
+
+    // Extract dominant color from playlist thumbnail
+    if (playlist.value?.Thumbnail) {
+      extractColor(playlist.value.Thumbnail);
     }
   } catch (error) {
     console.error("Error fetching playlist:", error);
@@ -772,11 +908,8 @@ const handleUpdatePlaylist = async () => {
     if (editThumbnailFile.value) {
       isUploadingImage.value = true;
       try {
-        const uploadRes = await fileApi.uploadDirect(
-          editThumbnailFile.value,
-          "image",
-        );
-        thumbnailUrl = uploadRes.secure_url || uploadRes.url;
+        const uploadRes = await fileApi.uploadImage(editThumbnailFile.value);
+        thumbnailUrl = uploadRes.Url || uploadRes.url;
       } finally {
         isUploadingImage.value = false;
       }
@@ -881,6 +1014,103 @@ const closeSearch = () => {
   searchResults.value = [];
 };
 
+// Recommendations
+const fetchRecommendations = async () => {
+  try {
+    const userInfo = await import("~/api/userApi").then((m) =>
+      m.default.getUserInfo(),
+    );
+    const userId = userInfo?.Id || userInfo?.id;
+    if (!userId) return;
+
+    const res = await recommendationApi.getRecommendedSongs(userId, 10);
+    const allSongs = Array.isArray(res) ? res : res?.data || res?.Data || [];
+    // Filter out songs already in playlist
+    const existingIds = new Set(songs.value.map((s) => s.Id || s.SongId));
+    recommendedSongs.value = allSongs.filter((s) => !existingIds.has(s.Id));
+  } catch (error) {
+    console.error("Error fetching recommendations:", error);
+  }
+};
+
+const refreshRecommendations = () => {
+  fetchRecommendations();
+};
+
+const addRecommendedSong = async (song) => {
+  try {
+    await interactionApi.addSongToPlaylist({
+      playlistId: route.params.id,
+      songId: song.Id,
+    });
+    songs.value.push({ ...song, SongId: song.Id });
+    // Remove from recommendations
+    recommendedSongs.value = recommendedSongs.value.filter(
+      (s) => s.Id !== song.Id,
+    );
+    toast.add({
+      title: t("notify.success"),
+      description: t("playlist.song_added", {
+        playlist: playlist.value?.Title,
+      }),
+      color: "green",
+    });
+  } catch (error) {
+    console.error("Error adding recommended song:", error);
+    toast.add({
+      title: t("notify.error"),
+      description: t("playlist.add_error"),
+      color: "red",
+    });
+  }
+};
+
+// Setup sticky header observer
+const setupStickyObserver = () => {
+  if (stickyObserver) stickyObserver.disconnect();
+
+  // Find the scroll container (parent with overflow-y-auto)
+  const scrollContainer =
+    headerSentinel.value?.closest(".overflow-y-auto") || null;
+
+  stickyObserver = new IntersectionObserver(
+    ([entry]) => {
+      showStickyHeader.value = !entry.isIntersecting;
+    },
+    {
+      root: scrollContainer,
+      threshold: 0,
+      rootMargin: "0px",
+    },
+  );
+
+  if (headerSentinel.value) {
+    stickyObserver.observe(headerSentinel.value);
+  }
+};
+
+// Toggle playlist visibility
+const toggleVisibility = async () => {
+  try {
+    const res = await interactionApi.togglePlaylistVisibility(route.params.id);
+    isPublic.value = res?.IsPublic ?? !isPublic.value;
+    toast.add({
+      title: t("notify.success"),
+      description: isPublic.value
+        ? t("playlist.now_public")
+        : t("playlist.now_private"),
+      color: "green",
+    });
+  } catch (error) {
+    console.error("Error toggling visibility:", error);
+    toast.add({
+      title: t("notify.error"),
+      description: t("playlist.update_error"),
+      color: "red",
+    });
+  }
+};
+
 // Menu items
 const playlistMenuItems = computed(() => [
   [
@@ -907,6 +1137,13 @@ const playlistMenuItems = computed(() => [
       },
     },
     {
+      label: isPublic.value
+        ? t("playlist.make_private")
+        : t("playlist.make_public"),
+      icon: isPublic.value ? "i-lucide-lock" : "i-lucide-globe",
+      onSelect: toggleVisibility,
+    },
+    {
       label: t("playlist.edit_details"),
       icon: "i-lucide-pencil",
       onSelect: openEditModal,
@@ -922,13 +1159,26 @@ const playlistMenuItems = computed(() => [
 ]);
 
 onMounted(() => {
-  fetchPlaylist();
+  fetchPlaylist().then(() => {
+    fetchRecommendations();
+    nextTick(() => setupStickyObserver());
+  });
+});
+
+onUnmounted(() => {
+  if (stickyObserver) stickyObserver.disconnect();
 });
 
 watch(
   () => route.params.id,
   (newId) => {
-    if (newId) fetchPlaylist();
+    if (newId) {
+      showStickyHeader.value = false;
+      fetchPlaylist().then(() => {
+        fetchRecommendations();
+        nextTick(() => setupStickyObserver());
+      });
+    }
   },
   { immediate: false },
 );
