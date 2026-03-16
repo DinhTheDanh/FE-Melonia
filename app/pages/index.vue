@@ -17,9 +17,15 @@
           {{ t("home.show_all") }}
         </NuxtLink>
       </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
+      <div
+        ref="recommendedSongsGridRef"
+        class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6"
+      >
         <div
-          v-for="song in recommendedSongs.slice(0, 6)"
+          v-for="song in recommendedSongs.slice(
+            0,
+            recommendedSongsVisibleCount,
+          )"
           :key="song.Id"
           class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
           @click="playSong(song, recommendedSongs)"
@@ -82,9 +88,15 @@
           {{ t("home.show_all") }}
         </NuxtLink>
       </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
+      <div
+        ref="recommendedAlbumsGridRef"
+        class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6"
+      >
         <NuxtLink
-          v-for="album in recommendedAlbums.slice(0, 6)"
+          v-for="album in recommendedAlbums.slice(
+            0,
+            recommendedAlbumsVisibleCount,
+          )"
           :key="album.AlbumId"
           :to="`/user/my-albums/${album.AlbumId}`"
           class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
@@ -355,23 +367,34 @@ const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const parseTotalItems = (response, fallbackLength) => {
+  return (
+    response?.TotalRecords ||
+    response?.TotalCount ||
+    response?.Pagination?.TotalRecords ||
+    response?.Pagination?.TotalCount ||
+    response?.Meta?.TotalRecords ||
+    response?.Meta?.TotalCount ||
+    fallbackLength ||
+    0
+  );
+};
+
 const sortSongsByPopularity = (songs = []) => {
   return [...songs].sort((a, b) => {
-    const aLikes = toNumber(a?.LikeCount);
-    const bLikes = toNumber(b?.LikeCount);
     const aListens = toNumber(a?.ListenCount);
     const bListens = toNumber(b?.ListenCount);
-
-    const scoreA = aLikes * 3 + aListens;
-    const scoreB = bLikes * 3 + bListens;
-
-    if (scoreB !== scoreA) return scoreB - scoreA;
-    if (bLikes !== aLikes) return bLikes - aLikes;
     if (bListens !== aListens) return bListens - aListens;
+
+    const aLikes = toNumber(a?.LikeCount);
+    const bLikes = toNumber(b?.LikeCount);
+    if (bLikes !== aLikes) return bLikes - aLikes;
 
     const aCreated = new Date(a?.CreatedAt || 0).getTime();
     const bCreated = new Date(b?.CreatedAt || 0).getTime();
-    return bCreated - aCreated;
+    if (bCreated !== aCreated) return bCreated - aCreated;
+
+    return String(a?.Title || "").localeCompare(String(b?.Title || ""));
   });
 };
 
@@ -386,23 +409,90 @@ const sortArtistsByPopularity = (artistList = []) => {
     const aSongCount = toNumber(a?.SongCount);
     const bSongCount = toNumber(b?.SongCount);
 
-    const scoreA = aFollowers * 5 + aLikes * 2 + aListens + aSongCount * 3;
-    const scoreB = bFollowers * 5 + bLikes * 2 + bListens + bSongCount * 3;
-
-    if (scoreB !== scoreA) return scoreB - scoreA;
     if (bFollowers !== aFollowers) return bFollowers - aFollowers;
+    if (bLikes !== aLikes) return bLikes - aLikes;
     if (bListens !== aListens) return bListens - aListens;
-    return bSongCount - aSongCount;
+    if (bSongCount !== aSongCount) return bSongCount - aSongCount;
+
+    const aName = a?.FullName || a?.ArtistName || "";
+    const bName = b?.FullName || b?.ArtistName || "";
+    return String(aName).localeCompare(String(bName));
   });
+};
+
+const fetchAllSongsForPopularity = async () => {
+  const fetchPageSize = 100;
+  const maxPages = 10;
+
+  const firstRes = await musicApi
+    .getSongs({ pageIndex: 1, pageSize: fetchPageSize })
+    .catch(() => null);
+  if (!firstRes) return [];
+
+  const firstList = firstRes.Data || firstRes || [];
+  const total = parseTotalItems(firstRes, firstList.length);
+  const totalPages = Math.ceil(total / fetchPageSize);
+  const pagesToFetch = Math.max(1, Math.min(totalPages, maxPages));
+
+  if (pagesToFetch <= 1) return firstList;
+
+  const rest = await Promise.all(
+    Array.from({ length: pagesToFetch - 1 }, (_, index) =>
+      musicApi
+        .getSongs({ pageIndex: index + 2, pageSize: fetchPageSize })
+        .catch(() => null),
+    ),
+  );
+
+  const restItems = rest
+    .filter(Boolean)
+    .flatMap((res) => res?.Data || res || []);
+
+  return [...firstList, ...restItems];
+};
+
+const fetchAllArtistsForPopularity = async () => {
+  const fetchPageSize = 100;
+  const maxPages = 10;
+
+  const firstRes = await artistApi
+    .getArtists({ pageIndex: 1, pageSize: fetchPageSize })
+    .catch(() => null);
+  if (!firstRes) return [];
+
+  const firstList = firstRes.Data || firstRes || [];
+  const total = parseTotalItems(firstRes, firstList.length);
+  const totalPages = Math.ceil(total / fetchPageSize);
+  const pagesToFetch = Math.max(1, Math.min(totalPages, maxPages));
+
+  if (pagesToFetch <= 1) return firstList;
+
+  const rest = await Promise.all(
+    Array.from({ length: pagesToFetch - 1 }, (_, index) =>
+      artistApi
+        .getArtists({ pageIndex: index + 2, pageSize: fetchPageSize })
+        .catch(() => null),
+    ),
+  );
+
+  const restItems = rest
+    .filter(Boolean)
+    .flatMap((res) => res?.Data || res || []);
+
+  return [...firstList, ...restItems];
 };
 
 const featuredArtistsGridRef = ref(null);
 const popularSongsGridRef = ref(null);
 const popularAlbumsGridRef = ref(null);
+const recommendedSongsGridRef = ref(null);
+const recommendedAlbumsGridRef = ref(null);
 
 const featuredArtistsVisibleCount = ref(6);
 const popularSongsVisibleCount = ref(6);
 const popularAlbumsVisibleCount = ref(6);
+const recommendedSongsVisibleCount = ref(6);
+const recommendedAlbumsVisibleCount = ref(6);
 
 const CARD_MIN_WIDTH = 180;
 const GRID_GAP = 24;
@@ -417,6 +507,14 @@ const getVisibleCountForOneRow = (element, fallback = 6) => {
 };
 
 const recalculateOneRowCounts = () => {
+  recommendedSongsVisibleCount.value = getVisibleCountForOneRow(
+    recommendedSongsGridRef.value,
+    6,
+  );
+  recommendedAlbumsVisibleCount.value = getVisibleCountForOneRow(
+    recommendedAlbumsGridRef.value,
+    6,
+  );
   featuredArtistsVisibleCount.value = getVisibleCountForOneRow(
     featuredArtistsGridRef.value,
     6,
@@ -439,6 +537,8 @@ const attachGridObservers = () => {
   homeGridResizeObserver.disconnect();
 
   [
+    recommendedSongsGridRef.value,
+    recommendedAlbumsGridRef.value,
     featuredArtistsGridRef.value,
     popularSongsGridRef.value,
     popularAlbumsGridRef.value,
@@ -507,17 +607,14 @@ const fetchData = async () => {
     const userId = user.value?.id;
 
     // Fetch data in parallel
-    const [songsRes, albumsRes, artistsRes] = await Promise.all([
-      musicApi.getSongs({ pageIndex: 1, pageSize: 20 }).catch(() => null),
+    const [songsList, albumsRes, artistsList] = await Promise.all([
+      fetchAllSongsForPopularity(),
       musicApi.getAlbums({ pageIndex: 1, pageSize: 12 }).catch(() => null),
-      artistApi.getArtists({ pageIndex: 1, pageSize: 12 }).catch(() => null),
+      fetchAllArtistsForPopularity(),
     ]);
 
     // Handle songs response
-    if (songsRes) {
-      const songList = songsRes.Data || songsRes || [];
-      allSongs.value = sortSongsByPopularity(songList);
-    }
+    allSongs.value = sortSongsByPopularity(songsList || []);
 
     // Handle albums response
     if (albumsRes) {
@@ -525,10 +622,7 @@ const fetchData = async () => {
     }
 
     // Handle artists response
-    if (artistsRes) {
-      const artistList = artistsRes.Data || artistsRes || [];
-      artists.value = sortArtistsByPopularity(artistList);
-    }
+    artists.value = sortArtistsByPopularity(artistsList || []);
 
     // Fetch recommendations if user is logged in
     if (userId) {
@@ -576,6 +670,8 @@ onMounted(() => {
 
 watch(
   [
+    () => recommendedSongs.value.length,
+    () => recommendedAlbums.value.length,
     () => artists.value.length,
     () => allSongs.value.length,
     () => allAlbums.value.length,

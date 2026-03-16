@@ -99,7 +99,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="(u, index) in filteredData"
+              v-for="(u, index) in displayData"
               :key="u.UserId || u.Id"
               class="border-b border-white/5 hover:bg-white/5 transition-colors"
             >
@@ -169,7 +169,7 @@
                 </div>
               </td>
             </tr>
-            <tr v-if="filteredData.length === 0">
+            <tr v-if="displayData.length === 0">
               <td colspan="6" class="px-4 py-12 text-center text-neutral-500">
                 {{ t("admin.no_data") }}
               </td>
@@ -195,7 +195,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="(artist, index) in filteredData"
+              v-for="(artist, index) in displayData"
               :key="artist.UserId || artist.Id || artist.ArtistId"
               class="border-b border-white/5 hover:bg-white/5 transition-colors"
             >
@@ -236,7 +236,7 @@
                 {{ formatDate(artist.CreatedAt) }}
               </td>
             </tr>
-            <tr v-if="filteredData.length === 0">
+            <tr v-if="displayData.length === 0">
               <td colspan="6" class="px-4 py-12 text-center text-neutral-500">
                 {{ t("admin.no_data") }}
               </td>
@@ -262,7 +262,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="(song, index) in filteredData"
+              v-for="(song, index) in displayData"
               :key="song.Id || song.SongId"
               class="border-b border-white/5 hover:bg-white/5 transition-colors"
             >
@@ -310,7 +310,7 @@
                 </button>
               </td>
             </tr>
-            <tr v-if="filteredData.length === 0">
+            <tr v-if="displayData.length === 0">
               <td colspan="6" class="px-4 py-12 text-center text-neutral-500">
                 {{ t("admin.no_data") }}
               </td>
@@ -335,12 +335,12 @@
           </thead>
           <tbody>
             <tr
-              v-for="(genre, index) in filteredData"
+              v-for="(genre, index) in displayData"
               :key="genre.Id || genre.GenreId"
               class="border-b border-white/5 hover:bg-white/5 transition-colors"
             >
               <td class="px-4 py-3 text-neutral-400 text-sm">
-                {{ index + 1 }}
+                {{ (currentPage - 1) * pageSize + index + 1 }}
               </td>
               <td class="px-4 py-3">
                 <img
@@ -383,7 +383,7 @@
                 </div>
               </td>
             </tr>
-            <tr v-if="filteredData.length === 0">
+            <tr v-if="displayData.length === 0">
               <td colspan="5" class="px-4 py-12 text-center text-neutral-500">
                 {{ t("admin.no_data") }}
               </td>
@@ -409,7 +409,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="(sub, index) in filteredData"
+              v-for="(sub, index) in displayData"
               :key="sub.SubscriptionId || sub.Id"
               class="border-b border-white/5 hover:bg-white/5 transition-colors"
             >
@@ -440,7 +440,7 @@
                 {{ formatDate(sub.EndDate) }}
               </td>
             </tr>
-            <tr v-if="filteredData.length === 0">
+            <tr v-if="displayData.length === 0">
               <td colspan="6" class="px-4 py-12 text-center text-neutral-500">
                 {{ t("admin.no_data") }}
               </td>
@@ -467,7 +467,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="(payment, index) in filteredData"
+              v-for="(payment, index) in displayData"
               :key="payment.PaymentId || payment.Id"
               class="border-b border-white/5 hover:bg-white/5 transition-colors"
             >
@@ -559,7 +559,7 @@
                 </div>
               </td>
             </tr>
-            <tr v-if="filteredData.length === 0">
+            <tr v-if="displayData.length === 0">
               <td colspan="7" class="px-4 py-12 text-center text-neutral-500">
                 {{ t("admin.no_data") }}
               </td>
@@ -574,10 +574,8 @@
         class="flex items-center justify-between px-4 py-3 border-t border-white/5"
       >
         <p class="text-sm text-neutral-400">
-          {{ t("admin.showing") }} {{ (currentPage - 1) * pageSize + 1 }}–{{
-            Math.min(currentPage * pageSize, totalItems)
-          }}
-          {{ t("admin.of") }} {{ totalItems }}
+          {{ t("admin.showing") }} {{ showingFrom }}–{{ showingTo }}
+          {{ t("admin.of") }} {{ displayTotalItems }}
         </p>
         <div class="flex items-center gap-1">
           <button
@@ -803,6 +801,7 @@ const currentPage = ref(1);
 const pageSize = 15;
 const totalItems = ref(0);
 const tabData = ref([]);
+const searchSourceData = ref([]);
 
 const stats = ref({
   totalUsers: 0,
@@ -860,9 +859,12 @@ const statsCards = computed(() => [
 ]);
 
 const filteredData = computed(() => {
-  if (!debouncedSearchKeyword.value.trim()) return tabData.value;
+  const source = debouncedSearchKeyword.value.trim()
+    ? searchSourceData.value
+    : tabData.value;
+  if (!debouncedSearchKeyword.value.trim()) return source;
   const q = debouncedSearchKeyword.value.toLowerCase().trim();
-  return tabData.value.filter((item) => {
+  return source.filter((item) => {
     const fields = [
       item.FullName,
       item.UserName,
@@ -878,7 +880,30 @@ const filteredData = computed(() => {
   });
 });
 
-const totalPages = computed(() => Math.ceil(totalItems.value / pageSize) || 1);
+const isSearchMode = computed(() => !!debouncedSearchKeyword.value.trim());
+
+const displayTotalItems = computed(() =>
+  isSearchMode.value ? filteredData.value.length : totalItems.value,
+);
+
+const displayData = computed(() => {
+  if (!isSearchMode.value) return filteredData.value;
+  const start = (currentPage.value - 1) * pageSize;
+  return filteredData.value.slice(start, start + pageSize);
+});
+
+const showingFrom = computed(() => {
+  if (displayTotalItems.value === 0) return 0;
+  return (currentPage.value - 1) * pageSize + 1;
+});
+
+const showingTo = computed(() =>
+  Math.min(currentPage.value * pageSize, displayTotalItems.value),
+);
+
+const totalPages = computed(
+  () => Math.ceil(displayTotalItems.value / pageSize) || 1,
+);
 const paginationRange = computed(() => {
   const total = totalPages.value,
     current = currentPage.value,
@@ -1094,7 +1119,11 @@ const executeConfirmedAction = async () => {
         });
         break;
     }
-    await fetchTabData();
+    if (isSearchMode.value) {
+      await fetchSearchSourceData();
+    } else {
+      await fetchTabData();
+    }
     if (action === "deleteGenre") await fetchStats();
   } catch (error) {
     toast.add({
@@ -1264,50 +1293,103 @@ const saveGenre = async () => {
 // ========================
 // Data Fetching
 // ========================
+const parseTotalItems = (res, fallbackLength = 0) => {
+  return (
+    res?.TotalRecords ||
+    res?.TotalCount ||
+    res?.Total ||
+    res?.TotalItems ||
+    res?.Pagination?.TotalRecords ||
+    res?.Pagination?.TotalCount ||
+    fallbackLength ||
+    0
+  );
+};
+
+const getTabResponse = async (tab, params) => {
+  switch (tab) {
+    case "users":
+      return await adminApi.getUsers(params).catch(() => null);
+    case "artists":
+      return await adminApi
+        .getArtists(params)
+        .catch(
+          async () => await artistApi.getArtists(params).catch(() => null),
+        );
+    case "songs":
+      return await adminApi
+        .getSongs(params)
+        .catch(async () => await musicApi.getSongs(params).catch(() => null));
+    case "genres":
+      return await adminApi.getGenres().catch(() => null);
+    case "subscriptions":
+      return await adminApi.getSubscriptions(params).catch(() => null);
+    case "payments":
+      return await adminApi.getPayments(params).catch(() => null);
+    default:
+      return null;
+  }
+};
+
+const normalizeTabItems = (tab, res) => {
+  if (!res) return [];
+  if (tab === "genres") {
+    return Array.isArray(res) ? res : res?.Data || [];
+  }
+  return res?.Data || res?.Items || (Array.isArray(res) ? res : []);
+};
+
+const fetchAllPagesForSearch = async () => {
+  if (activeTab.value === "genres") {
+    const res = await getTabResponse("genres", {});
+    return normalizeTabItems("genres", res);
+  }
+
+  const fetchPageSize = 100;
+  const maxPages = 50;
+
+  const firstRes = await getTabResponse(activeTab.value, {
+    pageIndex: 1,
+    pageSize: fetchPageSize,
+  });
+  const firstItems = normalizeTabItems(activeTab.value, firstRes);
+  const total = parseTotalItems(firstRes, firstItems.length);
+  const totalPagesToFetch = Math.max(
+    1,
+    Math.min(Math.ceil(total / fetchPageSize), maxPages),
+  );
+
+  if (totalPagesToFetch <= 1) return firstItems;
+
+  const restResponses = await Promise.all(
+    Array.from({ length: totalPagesToFetch - 1 }, (_, index) =>
+      getTabResponse(activeTab.value, {
+        pageIndex: index + 2,
+        pageSize: fetchPageSize,
+      }),
+    ),
+  );
+
+  const restItems = restResponses
+    .filter(Boolean)
+    .flatMap((res) => normalizeTabItems(activeTab.value, res));
+
+  return [...firstItems, ...restItems];
+};
+
 const fetchTabData = async () => {
   isLoading.value = true;
   const params = { pageIndex: currentPage.value, pageSize };
   try {
-    let res = null;
-    switch (activeTab.value) {
-      case "users":
-        res = await adminApi.getUsers(params).catch(() => null);
-        break;
-      case "artists":
-        res = await adminApi
-          .getArtists(params)
-          .catch(
-            async () => await artistApi.getArtists(params).catch(() => null),
-          );
-        break;
-      case "songs":
-        res = await adminApi
-          .getSongs(params)
-          .catch(async () => await musicApi.getSongs(params).catch(() => null));
-        break;
-      case "genres":
-        res = await adminApi.getGenres().catch(() => null);
-        break;
-      case "subscriptions":
-        res = await adminApi.getSubscriptions(params).catch(() => null);
-        break;
-      case "payments":
-        res = await adminApi.getPayments(params).catch(() => null);
-        break;
-    }
+    const res = await getTabResponse(activeTab.value, params);
     if (res) {
       if (activeTab.value === "genres") {
-        const arr = Array.isArray(res) ? res : res.Data || res || [];
+        const arr = normalizeTabItems("genres", res);
         tabData.value = arr;
         totalItems.value = arr.length;
       } else {
-        tabData.value = res.Data || res.Items || res || [];
-        totalItems.value =
-          res.TotalRecords ||
-          res.TotalCount ||
-          res.Total ||
-          res.TotalItems ||
-          tabData.value.length;
+        tabData.value = normalizeTabItems(activeTab.value, res);
+        totalItems.value = parseTotalItems(res, tabData.value.length);
       }
     } else {
       tabData.value = [];
@@ -1317,6 +1399,23 @@ const fetchTabData = async () => {
     console.error("Admin fetch error:", error);
     tabData.value = [];
     totalItems.value = 0;
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const fetchSearchSourceData = async () => {
+  if (!isSearchMode.value) {
+    searchSourceData.value = [];
+    return;
+  }
+
+  isLoading.value = true;
+  try {
+    searchSourceData.value = await fetchAllPagesForSearch();
+  } catch (error) {
+    console.error("Admin search fetch error:", error);
+    searchSourceData.value = [];
   } finally {
     isLoading.value = false;
   }
@@ -1377,10 +1476,22 @@ const fetchStats = async () => {
 watch(activeTab, () => {
   currentPage.value = 1;
   searchKeyword.value = "";
+  debouncedSearchKeyword.value = "";
+  searchSourceData.value = [];
   fetchTabData();
 });
 watch(currentPage, () => {
-  fetchTabData();
+  if (!isSearchMode.value) {
+    fetchTabData();
+  }
+});
+watch(debouncedSearchKeyword, async () => {
+  currentPage.value = 1;
+  if (!isSearchMode.value) {
+    await fetchTabData();
+    return;
+  }
+  await fetchSearchSourceData();
 });
 onMounted(() => {
   fetchStats();

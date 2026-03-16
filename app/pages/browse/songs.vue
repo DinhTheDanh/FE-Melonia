@@ -86,6 +86,30 @@
         </div>
       </div>
 
+      <!-- Pagination -->
+      <div
+        v-if="!isLoading && totalPages > 1"
+        class="flex items-center justify-center gap-4 mt-8"
+      >
+        <button
+          class="px-3 py-1.5 rounded-full text-sm border border-white/15 text-neutral-300 hover:text-white hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          :disabled="currentPage === 1"
+          @click="goToPage(currentPage - 1)"
+        >
+          {{ $t("song.previous") || "Previous" }}
+        </button>
+        <span class="text-sm text-neutral-300">
+          {{ currentPage }} / {{ totalPages }}
+        </span>
+        <button
+          class="px-3 py-1.5 rounded-full text-sm border border-white/15 text-neutral-300 hover:text-white hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          :disabled="currentPage >= totalPages"
+          @click="goToPage(currentPage + 1)"
+        >
+          {{ $t("song.next") || "Next" }}
+        </button>
+      </div>
+
       <!-- Empty -->
       <div
         v-if="!isLoading && filteredSongs.length === 0"
@@ -114,7 +138,39 @@ const { user } = useAuth();
 
 const isLoading = ref(true);
 const songs = ref([]);
+const recommendedSongsAll = ref([]);
+const popularSongsAll = ref([]);
 const searchQuery = ref("");
+const currentPage = ref(1);
+const pageSize = 24;
+const totalItems = ref(0);
+
+const toNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const sortSongsByPopularity = (list = []) => {
+  return [...list].sort((a, b) => {
+    const aListens = toNumber(a?.ListenCount);
+    const bListens = toNumber(b?.ListenCount);
+    if (bListens !== aListens) return bListens - aListens;
+
+    const aLikes = toNumber(a?.LikeCount);
+    const bLikes = toNumber(b?.LikeCount);
+    if (bLikes !== aLikes) return bLikes - aLikes;
+
+    const aCreated = new Date(a?.CreatedAt || 0).getTime();
+    const bCreated = new Date(b?.CreatedAt || 0).getTime();
+    if (bCreated !== aCreated) return bCreated - aCreated;
+
+    return String(a?.Title || "").localeCompare(String(b?.Title || ""));
+  });
+};
+
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(totalItems.value / pageSize)),
+);
 
 const filteredSongs = computed(() => {
   if (!searchQuery.value.trim()) return songs.value;
@@ -143,30 +199,110 @@ const playSong = (song) => {
   playerStore.playTrack(song, songs.value, index >= 0 ? index : 0);
 };
 
-onMounted(async () => {
+const parseTotalItems = (response, fallbackLength) => {
+  return (
+    response?.TotalRecords ||
+    response?.TotalCount ||
+    response?.Pagination?.TotalRecords ||
+    response?.Pagination?.TotalCount ||
+    response?.Meta?.TotalRecords ||
+    response?.Meta?.TotalCount ||
+    fallbackLength ||
+    0
+  );
+};
+
+const fetchAllPopularSongs = async () => {
+  const fetchPageSize = 100;
+  const maxPages = 20;
+
+  const firstRes = await musicApi.getSongs({
+    pageIndex: 1,
+    pageSize: fetchPageSize,
+  });
+  const firstList = firstRes?.Data || firstRes || [];
+  const total = parseTotalItems(firstRes, firstList.length);
+
+  const totalPagesFromApi = Math.ceil(total / fetchPageSize);
+  const pagesToFetch = Math.max(1, Math.min(totalPagesFromApi, maxPages));
+
+  if (pagesToFetch <= 1) return firstList;
+
+  const remainingResponses = await Promise.all(
+    Array.from({ length: pagesToFetch - 1 }, (_, index) =>
+      musicApi
+        .getSongs({
+          pageIndex: index + 2,
+          pageSize: fetchPageSize,
+        })
+        .catch(() => null),
+    ),
+  );
+
+  const remainingItems = remainingResponses
+    .filter(Boolean)
+    .flatMap((res) => res?.Data || res || []);
+
+  return [...firstList, ...remainingItems];
+};
+
+const fetchSongs = async () => {
+  isLoading.value = true;
   try {
     if (type.value === "genre" && genreId.value) {
       // Fetch songs filtered by genre
       const res = await musicApi.getSongs({
         genreId: genreId.value,
-        pageIndex: 1,
-        pageSize: 20,
+        pageIndex: currentPage.value,
+        pageSize,
       });
-      songs.value = res.Data || res || [];
+      const list = res?.Data || res || [];
+      songs.value = list;
+      totalItems.value = parseTotalItems(res, list.length);
     } else if (type.value === "recommended" && user.value?.id) {
-      const res = await recommendationApi.getRecommendedSongs(
-        user.value.id,
-        50,
-      );
-      songs.value = res.Data || res || [];
+      if (recommendedSongsAll.value.length === 0) {
+        const res = await recommendationApi.getRecommendedSongs(
+          user.value.id,
+          100,
+        );
+        const list = res?.Data || res || [];
+        recommendedSongsAll.value = sortSongsByPopularity(list);
+      }
+      totalItems.value = recommendedSongsAll.value.length;
+      const start = (currentPage.value - 1) * pageSize;
+      songs.value = recommendedSongsAll.value.slice(start, start + pageSize);
     } else {
-      const res = await musicApi.getSongs({ pageIndex: 1, pageSize: 20 });
-      songs.value = res.Data || res || [];
+      if (popularSongsAll.value.length === 0) {
+        const list = await fetchAllPopularSongs();
+        popularSongsAll.value = sortSongsByPopularity(list);
+      }
+
+      totalItems.value = popularSongsAll.value.length;
+      const start = (currentPage.value - 1) * pageSize;
+      songs.value = popularSongsAll.value.slice(start, start + pageSize);
     }
   } catch (error) {
     console.error("Error fetching songs:", error);
+    songs.value = [];
+    totalItems.value = 0;
   } finally {
     isLoading.value = false;
   }
+};
+
+const goToPage = (page) => {
+  const safePage = Math.min(Math.max(1, page), totalPages.value);
+  if (safePage === currentPage.value) return;
+  currentPage.value = safePage;
+  fetchSongs();
+};
+
+watch([type, genreId], () => {
+  currentPage.value = 1;
+  recommendedSongsAll.value = [];
+  popularSongsAll.value = [];
+  fetchSongs();
 });
+
+onMounted(fetchSongs);
 </script>

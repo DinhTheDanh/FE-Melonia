@@ -81,6 +81,30 @@
         </NuxtLink>
       </div>
 
+      <!-- Pagination -->
+      <div
+        v-if="!isLoading && totalPages > 1"
+        class="flex items-center justify-center gap-4 mt-8"
+      >
+        <button
+          class="px-3 py-1.5 rounded-full text-sm border border-white/15 text-neutral-300 hover:text-white hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          :disabled="currentPage === 1"
+          @click="goToPage(currentPage - 1)"
+        >
+          {{ $t("song.previous") || "Previous" }}
+        </button>
+        <span class="text-sm text-neutral-300">
+          {{ currentPage }} / {{ totalPages }}
+        </span>
+        <button
+          class="px-3 py-1.5 rounded-full text-sm border border-white/15 text-neutral-300 hover:text-white hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          :disabled="currentPage >= totalPages"
+          @click="goToPage(currentPage + 1)"
+        >
+          {{ $t("song.next") || "Next" }}
+        </button>
+      </div>
+
       <!-- Empty -->
       <div
         v-if="!isLoading && filteredArtists.length === 0"
@@ -104,7 +128,44 @@ import { formatNumber } from "~/utils/formatNumber";
 const playerStore = usePlayerStore();
 const isLoading = ref(true);
 const artists = ref([]);
+const popularArtistsAll = ref([]);
 const searchQuery = ref("");
+const currentPage = ref(1);
+const pageSize = 24;
+const totalItems = ref(0);
+
+const toNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const sortArtistsByPopularity = (list = []) => {
+  return [...list].sort((a, b) => {
+    const aFollowers = toNumber(a?.FollowerCount);
+    const bFollowers = toNumber(b?.FollowerCount);
+    if (bFollowers !== aFollowers) return bFollowers - aFollowers;
+
+    const aLikes = toNumber(a?.TotalLikes);
+    const bLikes = toNumber(b?.TotalLikes);
+    if (bLikes !== aLikes) return bLikes - aLikes;
+
+    const aListens = toNumber(a?.TotalListens);
+    const bListens = toNumber(b?.TotalListens);
+    if (bListens !== aListens) return bListens - aListens;
+
+    const aSongCount = toNumber(a?.SongCount);
+    const bSongCount = toNumber(b?.SongCount);
+    if (bSongCount !== aSongCount) return bSongCount - aSongCount;
+
+    const aName = a?.FullName || a?.ArtistName || "";
+    const bName = b?.FullName || b?.ArtistName || "";
+    return String(aName).localeCompare(String(bName));
+  });
+};
+
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(totalItems.value / pageSize)),
+);
 
 const filteredArtists = computed(() => {
   if (!searchQuery.value.trim()) return artists.value;
@@ -131,14 +192,79 @@ const playArtist = async (artist) => {
   }
 };
 
-onMounted(async () => {
+const parseTotalItems = (response, fallbackLength) => {
+  return (
+    response?.TotalRecords ||
+    response?.TotalCount ||
+    response?.Pagination?.TotalRecords ||
+    response?.Pagination?.TotalCount ||
+    response?.Meta?.TotalRecords ||
+    response?.Meta?.TotalCount ||
+    fallbackLength ||
+    0
+  );
+};
+
+const fetchAllPopularArtists = async () => {
+  const fetchPageSize = 100;
+  const maxPages = 20;
+
+  const firstRes = await artistApi.getArtists({
+    pageIndex: 1,
+    pageSize: fetchPageSize,
+  });
+  const firstList = firstRes?.Data || firstRes || [];
+  const total = parseTotalItems(firstRes, firstList.length);
+
+  const totalPagesFromApi = Math.ceil(total / fetchPageSize);
+  const pagesToFetch = Math.max(1, Math.min(totalPagesFromApi, maxPages));
+
+  if (pagesToFetch <= 1) return firstList;
+
+  const remainingResponses = await Promise.all(
+    Array.from({ length: pagesToFetch - 1 }, (_, index) =>
+      artistApi
+        .getArtists({
+          pageIndex: index + 2,
+          pageSize: fetchPageSize,
+        })
+        .catch(() => null),
+    ),
+  );
+
+  const remainingItems = remainingResponses
+    .filter(Boolean)
+    .flatMap((res) => res?.Data || res || []);
+
+  return [...firstList, ...remainingItems];
+};
+
+const fetchArtists = async () => {
+  isLoading.value = true;
   try {
-    const res = await artistApi.getArtists({ pageIndex: 1, pageSize: 20 });
-    artists.value = res.Data || res || [];
+    if (popularArtistsAll.value.length === 0) {
+      const list = await fetchAllPopularArtists();
+      popularArtistsAll.value = sortArtistsByPopularity(list);
+    }
+
+    totalItems.value = popularArtistsAll.value.length;
+    const start = (currentPage.value - 1) * pageSize;
+    artists.value = popularArtistsAll.value.slice(start, start + pageSize);
   } catch (error) {
     console.error("Error fetching artists:", error);
+    artists.value = [];
+    totalItems.value = 0;
   } finally {
     isLoading.value = false;
   }
-});
+};
+
+const goToPage = (page) => {
+  const safePage = Math.min(Math.max(1, page), totalPages.value);
+  if (safePage === currentPage.value) return;
+  currentPage.value = safePage;
+  fetchArtists();
+};
+
+onMounted(fetchArtists);
 </script>

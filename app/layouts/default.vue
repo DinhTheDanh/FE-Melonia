@@ -648,6 +648,11 @@ const dropdownItems = computed(() => {
     items.push(
       { type: "separator" },
       {
+        label: t("header.dashboard"),
+        to: "/user",
+        icon: "i-lucide-chart-line",
+      },
+      {
         label: t("song.my_music"),
         to: "/user/my-music",
         icon: "i-lucide-music",

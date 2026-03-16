@@ -170,8 +170,8 @@
             >
               <div class="relative mb-4">
                 <img
-                  v-if="artist.AvatarUrl || artist.Thumbnail"
-                  :src="artist.AvatarUrl || artist.Thumbnail"
+                  v-if="artist.Avatar || artist.AvatarUrl || artist.Thumbnail"
+                  :src="artist.Avatar || artist.AvatarUrl || artist.Thumbnail"
                   :alt="artist.FullName || artist.ArtistName"
                   class="w-full aspect-square object-cover rounded-full shadow-lg shadow-black/50"
                 />
@@ -343,7 +343,7 @@ const topResult = computed(() => {
       type: "artist",
       name: a.FullName || a.ArtistName,
       subtitle: "",
-      image: a.AvatarUrl || a.Thumbnail,
+      image: a.Avatar || a.AvatarUrl || a.Thumbnail,
       icon: "i-lucide-user",
       typeLabel: t("search.artist_label"),
       data: a,

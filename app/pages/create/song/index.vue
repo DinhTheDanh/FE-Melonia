@@ -324,6 +324,72 @@
         </div>
       </div>
 
+      <!-- UPLOAD LIMIT MODAL -->
+      <Transition name="fade">
+        <div
+          v-if="showUploadLimitModal"
+          class="fixed top-0 left-0 right-0 bottom-0 z-[997] w-full flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+          @click.self="showUploadLimitModal = false"
+        >
+          <div
+            class="w-full max-w-xl rounded-2xl bg-[#1f1f1f] border border-white/10 p-6 md:p-7 shadow-2xl"
+          >
+            <div class="flex items-start gap-3 mb-4">
+              <div
+                class="size-11 rounded-full bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0"
+              >
+                <UIcon name="i-lucide-shield-alert" class="size-6" />
+              </div>
+              <div>
+                <h3 class="text-lg md:text-xl font-bold text-white">
+                  {{ $t("song.upload_limit_title") }}
+                </h3>
+                <p class="text-sm text-neutral-300 mt-2 leading-relaxed">
+                  {{ $t("song.upload_limit_message") }}
+                </p>
+              </div>
+            </div>
+
+            <div
+              v-if="uploadAccess.limit > 0"
+              class="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm"
+            >
+              <p class="text-neutral-300">
+                {{
+                  $t("song.upload_limit_detail", {
+                    used: uploadAccess.used,
+                    limit: uploadAccess.limit,
+                  })
+                }}
+              </p>
+              <p v-if="uploadAccess.planName" class="text-neutral-500 mt-1">
+                {{ $t("song.upload_limit_plan", { plan: uploadAccess.planName }) }}
+              </p>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-3">
+              <UButton color="gray" variant="soft" @click="goToMyMusic">
+                {{ $t("song.manage_songs") }}
+              </UButton>
+              <UButton
+                color="primary"
+                class="font-bold"
+                :ui="{
+                  color: {
+                    primary: {
+                      solid: 'bg-[#1DB954] hover:bg-[#1ed760] text-black',
+                    },
+                  },
+                }"
+                @click="goToPricing"
+              >
+                {{ $t("song.upgrade_plan") }}
+              </UButton>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
       <!-- OWNERSHIP CONFIRMATION MODAL -->
       <Transition name="fade">
         <div
@@ -464,6 +530,7 @@ import musicApi from "~/api/musicApi";
 import fileApi from "~/api/fileApi";
 import userApi from "~/api/userApi";
 import artistApi from "~/api/artistApi";
+import paymentApi from "~/api/paymentApi";
 import { calculateMD5 } from "~/utils/fileHasher";
 
 definePageMeta({ layout: "auth" });
@@ -490,6 +557,13 @@ const uploadFileSize = ref("");
 const showOwnershipModal = ref(false);
 const ownershipAccepted = ref(false);
 const ownershipShake = ref(false);
+const showUploadLimitModal = ref(false);
+const uploadAccess = reactive({
+  blocked: false,
+  used: 0,
+  limit: 0,
+  planName: "",
+});
 
 // State form
 const form = reactive({
@@ -516,14 +590,19 @@ const labelStyle = {
 onMounted(async () => {
   try {
     const userRes = await userApi.getUserInfo();
-    currentUser.value = userRes;
-    if (userRes) {
-      form.selectedArtists = [userRes];
+    currentUser.value = userRes?.Data || userRes || null;
+
+    await checkUploadAccess();
+
+    if (currentUser.value) {
+      form.selectedArtists = [currentUser.value];
 
       if (
-        !allArtists.value.some((a) => getArtistId(a) === getArtistId(userRes))
+        !allArtists.value.some(
+          (a) => getArtistId(a) === getArtistId(currentUser.value),
+        )
       ) {
-        allArtists.value = [userRes, ...allArtists.value];
+        allArtists.value = [currentUser.value, ...allArtists.value];
       }
     }
 
@@ -531,6 +610,87 @@ onMounted(async () => {
     await fetchMyAlbums();
   } catch (e) {}
 });
+
+const parseTotalItems = (response, fallbackLength = 0) => {
+  return (
+    response?.TotalRecords ||
+    response?.TotalCount ||
+    response?.Pagination?.TotalRecords ||
+    response?.Pagination?.TotalCount ||
+    response?.Meta?.TotalRecords ||
+    response?.Meta?.TotalCount ||
+    fallbackLength ||
+    0
+  );
+};
+
+const parseCanUpload = (response) => {
+  const payload = response?.Data || response;
+  if (typeof payload === "boolean") return payload;
+  if (typeof payload?.CanUpload === "boolean") return payload.CanUpload;
+  if (typeof payload?.canUpload === "boolean") return payload.canUpload;
+  if (typeof payload?.Allowed === "boolean") return payload.Allowed;
+  if (typeof payload?.allowed === "boolean") return payload.allowed;
+  return null;
+};
+
+const checkUploadAccess = async () => {
+  const role = currentUser.value?.Role || currentUser.value?.role;
+  if (role !== "Artist") {
+    uploadAccess.blocked = false;
+    return;
+  }
+
+  try {
+    const [mySongsRes, activeSubRes, plansRes, canUploadRes] = await Promise.all([
+      musicApi.getMySongs({ pageIndex: 1, pageSize: 1 }).catch(() => null),
+      paymentApi.getActiveSubscription().catch(() => null),
+      paymentApi.getPlans().catch(() => null),
+      paymentApi.canUpload().catch(() => null),
+    ]);
+
+    const currentSongs = mySongsRes?.Data || mySongsRes || [];
+    const uploadedCount = parseTotalItems(mySongsRes, currentSongs.length);
+
+    const activeSub = activeSubRes?.Data || activeSubRes || null;
+    const plans = plansRes?.Data || plansRes || [];
+    const activePlan = plans.find((plan) => plan.PlanId === activeSub?.PlanId);
+
+    const uploadLimit = Number(activePlan?.UploadLimit);
+    const hasLimitedQuota = Number.isFinite(uploadLimit) && uploadLimit > 0;
+    const canUpload = parseCanUpload(canUploadRes);
+
+    uploadAccess.used = uploadedCount;
+    uploadAccess.limit = hasLimitedQuota ? uploadLimit : 0;
+    uploadAccess.planName = activePlan?.PlanName || activeSub?.PlanName || "";
+
+    const blockByCount = hasLimitedQuota && uploadedCount >= uploadLimit;
+    const blockByFeature = canUpload === false;
+    uploadAccess.blocked = blockByCount || blockByFeature;
+
+    if (uploadAccess.blocked) {
+      showUploadLimitModal.value = true;
+    }
+  } catch (error) {
+    console.error("Upload access check failed:", error);
+  }
+};
+
+const ensureUploadAccess = () => {
+  if (!uploadAccess.blocked) return false;
+  showUploadLimitModal.value = true;
+  return true;
+};
+
+const goToPricing = () => {
+  showUploadLimitModal.value = false;
+  navigateTo("/pricing");
+};
+
+const goToMyMusic = () => {
+  showUploadLimitModal.value = false;
+  navigateTo("/user/my-music");
+};
 
 const fetchGenresIfNeeded = async () => {
   if (availableGenres.value.length === 0) {
@@ -584,6 +744,8 @@ const fetchArtists = async (keyword = "") => {
 };
 
 const processAudio = (file) => {
+  if (ensureUploadAccess()) return;
+
   if (!file.type.startsWith("audio/")) {
     toast.add({
       title: $t("song.error_title"),
@@ -608,7 +770,10 @@ const handleAudioDrop = (e) => {
   isDragging.value = false;
   if (e.dataTransfer.files[0]) processAudio(e.dataTransfer.files[0]);
 };
-const triggerAudioInput = () => audioInputRef.value.click();
+const triggerAudioInput = () => {
+  if (ensureUploadAccess()) return;
+  audioInputRef.value.click();
+};
 
 const handleImageSelect = (e) => {
   const file = e.target.files[0];
@@ -736,6 +901,7 @@ const isAlbumSelected = (album) => {
 };
 
 const openOwnershipModal = () => {
+  if (ensureUploadAccess()) return;
   if (isSubmitting.value || !isFormValid.value) return;
   ownershipAccepted.value = false;
   ownershipShake.value = false;
@@ -756,6 +922,7 @@ const confirmOwnershipAndSubmit = async () => {
 };
 
 const handleSubmit = async () => {
+  if (ensureUploadAccess()) return;
   if (isSubmitting.value) return;
 
   isSubmitting.value = true;
@@ -835,6 +1002,7 @@ const resetForm = () => {
 
 const isFormValid = computed(() => {
   return (
+    !uploadAccess.blocked &&
     form.title.trim() &&
     form.audioFile &&
     form.selectedArtists.length > 0 &&

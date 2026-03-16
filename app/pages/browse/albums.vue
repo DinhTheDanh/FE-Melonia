@@ -73,6 +73,30 @@
         </NuxtLink>
       </div>
 
+      <!-- Pagination -->
+      <div
+        v-if="!isLoading && totalPages > 1"
+        class="flex items-center justify-center gap-4 mt-8"
+      >
+        <button
+          class="px-3 py-1.5 rounded-full text-sm border border-white/15 text-neutral-300 hover:text-white hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          :disabled="currentPage === 1"
+          @click="goToPage(currentPage - 1)"
+        >
+          {{ $t("song.previous") || "Previous" }}
+        </button>
+        <span class="text-sm text-neutral-300">
+          {{ currentPage }} / {{ totalPages }}
+        </span>
+        <button
+          class="px-3 py-1.5 rounded-full text-sm border border-white/15 text-neutral-300 hover:text-white hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          :disabled="currentPage >= totalPages"
+          @click="goToPage(currentPage + 1)"
+        >
+          {{ $t("song.next") || "Next" }}
+        </button>
+      </div>
+
       <!-- Empty -->
       <div
         v-if="!isLoading && filteredAlbums.length === 0"
@@ -119,7 +143,42 @@ async function playAlbum(album) {
 
 const isLoading = ref(true);
 const albums = ref([]);
+const recommendedAlbumsAll = ref([]);
 const searchQuery = ref("");
+const currentPage = ref(1);
+const pageSize = 24;
+const totalItems = ref(0);
+
+const toNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const sortAlbumsByPopularity = (list = []) => {
+  return [...list].sort((a, b) => {
+    const aListens = toNumber(a?.ListenCount);
+    const bListens = toNumber(b?.ListenCount);
+    if (bListens !== aListens) return bListens - aListens;
+
+    const aLikes = toNumber(a?.LikeCount);
+    const bLikes = toNumber(b?.LikeCount);
+    if (bLikes !== aLikes) return bLikes - aLikes;
+
+    const aSongCount = toNumber(a?.SongCount);
+    const bSongCount = toNumber(b?.SongCount);
+    if (bSongCount !== aSongCount) return bSongCount - aSongCount;
+
+    const aCreated = new Date(a?.CreatedAt || 0).getTime();
+    const bCreated = new Date(b?.CreatedAt || 0).getTime();
+    if (bCreated !== aCreated) return bCreated - aCreated;
+
+    return String(a?.Title || "").localeCompare(String(b?.Title || ""));
+  });
+};
+
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(totalItems.value / pageSize)),
+);
 
 const filteredAlbums = computed(() => {
   if (!searchQuery.value.trim()) return albums.value;
@@ -138,22 +197,64 @@ const title = computed(() => {
   return t("home.popular_albums");
 });
 
-onMounted(async () => {
+const parseTotalItems = (response, fallbackLength) => {
+  return (
+    response?.TotalRecords ||
+    response?.TotalCount ||
+    response?.Pagination?.TotalRecords ||
+    response?.Pagination?.TotalCount ||
+    response?.Meta?.TotalRecords ||
+    response?.Meta?.TotalCount ||
+    fallbackLength ||
+    0
+  );
+};
+
+const fetchAlbums = async () => {
+  isLoading.value = true;
   try {
     if (type.value === "recommended" && user.value?.id) {
-      const res = await recommendationApi.getRecommendedAlbums(
-        user.value.id,
-        50,
-      );
-      albums.value = res.Data || res || [];
+      if (recommendedAlbumsAll.value.length === 0) {
+        const res = await recommendationApi.getRecommendedAlbums(
+          user.value.id,
+          100,
+        );
+        const list = res?.Data || res || [];
+        recommendedAlbumsAll.value = sortAlbumsByPopularity(list);
+      }
+      totalItems.value = recommendedAlbumsAll.value.length;
+      const start = (currentPage.value - 1) * pageSize;
+      albums.value = recommendedAlbumsAll.value.slice(start, start + pageSize);
     } else {
-      const res = await musicApi.getAlbums({ pageIndex: 1, pageSize: 20 });
-      albums.value = res.Data || res || [];
+      const res = await musicApi.getAlbums({
+        pageIndex: currentPage.value,
+        pageSize,
+      });
+      const list = res?.Data || res || [];
+      albums.value = list;
+      totalItems.value = parseTotalItems(res, list.length);
     }
   } catch (error) {
     console.error("Error fetching albums:", error);
+    albums.value = [];
+    totalItems.value = 0;
   } finally {
     isLoading.value = false;
   }
+};
+
+const goToPage = (page) => {
+  const safePage = Math.min(Math.max(1, page), totalPages.value);
+  if (safePage === currentPage.value) return;
+  currentPage.value = safePage;
+  fetchAlbums();
+};
+
+watch(type, () => {
+  currentPage.value = 1;
+  recommendedAlbumsAll.value = [];
+  fetchAlbums();
 });
+
+onMounted(fetchAlbums);
 </script>
