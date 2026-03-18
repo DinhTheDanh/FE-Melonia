@@ -73,11 +73,20 @@
           >
             {{ t("auth.login.continue") }}
           </UButton>
+
+          <div class="flex justify-end">
+            <NuxtLink
+              :to="forgotPasswordLink"
+              class="text-sm font-medium text-primary-400 hover:text-primary-300 hover:underline transition-colors"
+            >
+              {{ t("auth.login.forgot_password") }}
+            </NuxtLink>
+          </div>
         </UForm>
 
         <!-- Sign up link -->
-        <div class="mt-8 pt-4 w-full text-center">
-          <p class="text-gray-400 font-medium">
+        <div class="mt-8 w-full text-center">
+          <p class="text-gray-400 font-medium flex items-center">
             {{ t("auth.login.no_account") }}
             <NuxtLink
               to="/auth/register"
@@ -142,6 +151,15 @@
             </UInput>
           </UFormField>
 
+          <div class="flex justify-end">
+            <NuxtLink
+              :to="forgotPasswordLink"
+              class="text-sm font-medium text-primary-400 hover:text-primary-300 hover:underline transition-colors"
+            >
+              {{ t("auth.login.forgot_password") }}
+            </NuxtLink>
+          </div>
+
           <!-- Error message -->
           <p v-if="errorMsg" class="text-red-400 text-sm">
             {{ errorMsg }}
@@ -164,7 +182,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { GoogleLogin } from "vue3-google-login";
 import authApi from "../../../api/authApi";
@@ -175,7 +193,6 @@ definePageMeta({
 
 const { t } = useI18n();
 const { saveTokens } = useAuth();
-const toast = useToast();
 
 const step = ref(1);
 const showPassword = ref(false);
@@ -185,6 +202,13 @@ const errorMsg = ref("");
 const state = reactive({
   email: "",
   password: "",
+});
+
+const forgotPasswordLink = computed(() => {
+  const email = state.email.trim();
+  return email
+    ? `/auth/forgot-password?email=${encodeURIComponent(email)}`
+    : "/auth/forgot-password";
 });
 
 // Step 1 → Step 2

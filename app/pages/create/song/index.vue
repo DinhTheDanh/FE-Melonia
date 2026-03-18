@@ -206,7 +206,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+          <div class="grid grid-cols-1 md:grid-cols-2 items-start">
             <UFormGroup
               :label="$t('song.primary_genre')"
               required
@@ -363,7 +363,9 @@
                 }}
               </p>
               <p v-if="uploadAccess.planName" class="text-neutral-500 mt-1">
-                {{ $t("song.upload_limit_plan", { plan: uploadAccess.planName }) }}
+                {{
+                  $t("song.upload_limit_plan", { plan: uploadAccess.planName })
+                }}
               </p>
             </div>
 
@@ -642,12 +644,13 @@ const checkUploadAccess = async () => {
   }
 
   try {
-    const [mySongsRes, activeSubRes, plansRes, canUploadRes] = await Promise.all([
-      musicApi.getMySongs({ pageIndex: 1, pageSize: 1 }).catch(() => null),
-      paymentApi.getActiveSubscription().catch(() => null),
-      paymentApi.getPlans().catch(() => null),
-      paymentApi.canUpload().catch(() => null),
-    ]);
+    const [mySongsRes, activeSubRes, plansRes, canUploadRes] =
+      await Promise.all([
+        musicApi.getMySongs({ pageIndex: 1, pageSize: 1 }).catch(() => null),
+        paymentApi.getActiveSubscription().catch(() => null),
+        paymentApi.getPlans().catch(() => null),
+        paymentApi.canUpload().catch(() => null),
+      ]);
 
     const currentSongs = mySongsRes?.Data || mySongsRes || [];
     const uploadedCount = parseTotalItems(mySongsRes, currentSongs.length);

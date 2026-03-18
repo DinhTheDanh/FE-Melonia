@@ -3,7 +3,12 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   const jwt = useCookie("jwt");
 
   // Trang auth: chỉ dành cho user chưa đăng nhập
-  const authRoutes = ["/auth/login", "/auth/register"];
+  const authRoutes = [
+    "/auth/login",
+    "/auth/register",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+  ];
   const isAuthRoute = authRoutes.some((route) => to.path.startsWith(route));
 
   // Trang không yêu cầu xác thực (ai cũng vào được)
