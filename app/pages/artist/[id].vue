@@ -43,7 +43,7 @@
 
       <!-- Header with gradient -->
       <div
-        class="relative -mx-4 -mt-4 px-8 pt-16 pb-8"
+        class="relative -mx-4 -mt-4 px-8 pt-16 pb-4"
         :style="{
           background: `linear-gradient(180deg, ${artistColorDark} 0%, ${artistColorDarker} 60%, #121212 100%)`,
         }"
@@ -106,54 +106,54 @@
             </div>
           </div>
         </div>
+
+        <!-- Action Bar -->
+        <div class="flex items-center gap-6 pt-8 pb-2">
+          <!-- Play Button -->
+          <button
+            class="w-14 h-14 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg shadow-black/40 cursor-pointer"
+            :disabled="songs.length === 0"
+            @click="togglePlayAll"
+          >
+            <UIcon
+              v-if="isPlayingArtist"
+              name="i-fa6-solid-pause"
+              class="size-6 text-white"
+            />
+            <UIcon
+              v-else
+              name="i-fa6-solid-play"
+              class="size-6 text-white ml-1"
+            />
+          </button>
+
+          <!-- Shuffle -->
+          <UTooltip :text="$t('player.shuffle_off')" arrow>
+            <button
+              class="p-2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              @click="shufflePlay"
+            >
+              <UIcon name="i-lucide-shuffle" class="size-7" />
+            </button>
+          </UTooltip>
+
+          <!-- Follow Button -->
+          <button
+            class="px-8 py-1.5 text-sm font-bold border rounded-full transition-all cursor-pointer"
+            :class="
+              isFollowing
+                ? 'border-white/30 text-white hover:border-white hover:scale-105'
+                : 'border-white/30 text-white hover:border-white hover:scale-105'
+            "
+            @click="toggleFollow"
+          >
+            {{ isFollowing ? $t("artist.following") : $t("artist.follow") }}
+          </button>
+        </div>
       </div>
 
       <!-- Sentinel for sticky header detection -->
       <div ref="headerSentinel" class="h-px w-full"></div>
-
-      <!-- Action Bar -->
-      <div class="flex items-center gap-6 px-8 py-4">
-        <!-- Play Button -->
-        <button
-          class="w-14 h-14 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg shadow-black/40 cursor-pointer"
-          :disabled="songs.length === 0"
-          @click="togglePlayAll"
-        >
-          <UIcon
-            v-if="isPlayingArtist"
-            name="i-fa6-solid-pause"
-            class="size-6 text-white"
-          />
-          <UIcon
-            v-else
-            name="i-fa6-solid-play"
-            class="size-6 text-white ml-1"
-          />
-        </button>
-
-        <!-- Shuffle -->
-        <UTooltip :text="$t('player.shuffle_off')" arrow>
-          <button
-            class="p-2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-            @click="shufflePlay"
-          >
-            <UIcon name="i-lucide-shuffle" class="size-7" />
-          </button>
-        </UTooltip>
-
-        <!-- Follow Button -->
-        <button
-          class="px-8 py-1.5 text-sm font-bold border rounded-full transition-all cursor-pointer"
-          :class="
-            isFollowing
-              ? 'border-white/30 text-white hover:border-white hover:scale-105'
-              : 'border-white/30 text-white hover:border-white hover:scale-105'
-          "
-          @click="toggleFollow"
-        >
-          {{ isFollowing ? $t("artist.following") : $t("artist.follow") }}
-        </button>
-      </div>
 
       <!-- Popular Songs -->
       <div class="px-8">
@@ -299,6 +299,21 @@ const isLoading = ref(true);
 const showAllSongs = ref(false);
 const isFollowing = ref(false);
 
+const normalizeId = (value) => {
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
+};
+
+const getArtistIdentityIds = () => {
+  const ids = new Set();
+  ids.add(normalizeId(route.params.id));
+  ids.add(normalizeId(artist.value?.UserId));
+  ids.add(normalizeId(artist.value?.Id));
+  ids.add(normalizeId(artist.value?.ArtistId));
+  ids.delete("");
+  return ids;
+};
+
 // Sticky header via composable
 const { showStickyHeader, headerSentinel } = useStickyHeader();
 
@@ -308,26 +323,39 @@ const avatarUrl = computed(
 );
 const { dominantColor } = useDominantColor(avatarUrl);
 
-const artistColorDark = computed(() => {
-  const c = dominantColor.value;
-  if (!c || !c.startsWith("rgb")) return "#2a1a2a";
-  const match = c.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-  if (!match) return "#2a1a2a";
-  const r = Math.floor(parseInt(match[1]) * 0.35);
-  const g = Math.floor(parseInt(match[2]) * 0.35);
-  const b = Math.floor(parseInt(match[3]) * 0.35);
+const parseRgbColor = (color) => {
+  if (!color || !color.startsWith("rgb")) return null;
+  const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (!match) return null;
+  return {
+    r: parseInt(match[1], 10),
+    g: parseInt(match[2], 10),
+    b: parseInt(match[3], 10),
+  };
+};
+
+const buildTone = (base, { mixWhite = 0, intensity = 1, floor = 0 }) => {
+  const mixedR = base.r * (1 - mixWhite) + 255 * mixWhite;
+  const mixedG = base.g * (1 - mixWhite) + 255 * mixWhite;
+  const mixedB = base.b * (1 - mixWhite) + 255 * mixWhite;
+
+  const r = Math.max(floor, Math.min(255, Math.round(mixedR * intensity)));
+  const g = Math.max(floor, Math.min(255, Math.round(mixedG * intensity)));
+  const b = Math.max(floor, Math.min(255, Math.round(mixedB * intensity)));
+
   return `rgb(${r}, ${g}, ${b})`;
+};
+
+const artistColorDark = computed(() => {
+  const base = parseRgbColor(dominantColor.value);
+  if (!base) return "#3a2450";
+  return buildTone(base, { mixWhite: 0.22, intensity: 0.72, floor: 34 });
 });
 
 const artistColorDarker = computed(() => {
-  const c = dominantColor.value;
-  if (!c || !c.startsWith("rgb")) return "#1a1020";
-  const match = c.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-  if (!match) return "#1a1020";
-  const r = Math.floor(parseInt(match[1]) * 0.15);
-  const g = Math.floor(parseInt(match[2]) * 0.15);
-  const b = Math.floor(parseInt(match[3]) * 0.15);
-  return `rgb(${r}, ${g}, ${b})`;
+  const base = parseRgbColor(dominantColor.value);
+  if (!base) return "#22142f";
+  return buildTone(base, { mixWhite: 0.08, intensity: 0.48, floor: 22 });
 });
 
 const displayedSongs = computed(() =>
@@ -392,10 +420,30 @@ const shufflePlay = () => {
 
 // Follow / Unfollow
 const toggleFollow = async () => {
-  const artistId = route.params.id;
+  const targetUserId =
+    artist.value?.UserId ||
+    artist.value?.Id ||
+    artist.value?.ArtistId ||
+    route.params.id;
+
+  if (!targetUserId) return;
+
   try {
-    await interactionApi.followArtist(artistId);
-    isFollowing.value = !isFollowing.value;
+    const beforeFollow = isFollowing.value;
+    const res = await interactionApi.followArtist(targetUserId);
+
+    if (typeof res?.IsFollowing === "boolean") {
+      isFollowing.value = res.IsFollowing;
+    } else {
+      isFollowing.value = !beforeFollow;
+    }
+
+    if (artist.value && typeof artist.value.FollowerCount === "number") {
+      artist.value.FollowerCount = Math.max(
+        0,
+        artist.value.FollowerCount + (isFollowing.value ? 1 : -1),
+      );
+    }
   } catch (error) {
     console.error("Error toggling follow:", error);
   }
@@ -408,10 +456,18 @@ const checkFollowStatus = async () => {
       pageSize: 200,
     });
     const list = res?.Data || res || [];
-    const artistId = String(route.params.id);
-    isFollowing.value = list.some(
-      (a) => String(a.Id || a.ArtistId || a.FollowedUserId) === artistId,
-    );
+    const targetIds = getArtistIdentityIds();
+    isFollowing.value = list.some((a) => {
+      const followedIds = [
+        normalizeId(a?.UserId),
+        normalizeId(a?.Id),
+        normalizeId(a?.ArtistId),
+        normalizeId(a?.FollowedUserId),
+        normalizeId(a?.FollowingId),
+      ];
+
+      return followedIds.some((id) => id && targetIds.has(id));
+    });
   } catch {
     isFollowing.value = false;
   }
@@ -471,21 +527,21 @@ const fetchArtistData = async () => {
   }
 };
 
-onMounted(() => {
-  fetchArtistData();
+onMounted(async () => {
+  await fetchArtistData();
   if (user.value?.id) {
-    checkFollowStatus();
+    await checkFollowStatus();
   }
 });
 
 // Watch for route changes
 watch(
   () => route.params.id,
-  () => {
+  async () => {
     if (route.params.id) {
-      fetchArtistData();
+      await fetchArtistData();
       if (user.value?.id) {
-        checkFollowStatus();
+        await checkFollowStatus();
       }
     }
   },

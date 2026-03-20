@@ -3,7 +3,7 @@
     <div class="px-6 pt-8">
       <div class="flex items-center gap-4 mb-6">
         <button
-          class="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+          class="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer flex items-center"
           @click="$router.back()"
         >
           <UIcon name="i-lucide-arrow-left" class="size-6 text-white" />
@@ -16,13 +16,29 @@
               class="absolute left-3 size-4 text-neutral-400"
             />
             <input
-              v-model="searchQuery"
+              v-model="searchInput"
               type="text"
               :placeholder="$t('header.search_placeholder')"
               class="w-full h-9 bg-[#242424] text-white text-sm pl-9 pr-4 rounded-full border border-transparent focus:border-white/20 focus:bg-[#2a2a2a] outline-none placeholder:text-neutral-500 transition-all"
             />
           </div>
         </div>
+      </div>
+
+      <div v-if="isPopularType" class="flex items-center gap-2 mb-6">
+        <button
+          v-for="option in windowOptions"
+          :key="option.value"
+          class="px-3 py-1.5 rounded-full text-xs border transition-colors cursor-pointer"
+          :class="
+            windowType === option.value
+              ? 'bg-white text-black border-white'
+              : 'text-neutral-300 border-white/20 hover:border-white/40 hover:text-white'
+          "
+          @click="setWindowType(option.value)"
+        >
+          {{ option.label }}
+        </button>
       </div>
 
       <!-- Loading -->
@@ -39,7 +55,7 @@
         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
       >
         <NuxtLink
-          v-for="album in filteredAlbums"
+          v-for="album in displayedAlbums"
           :key="album.AlbumId"
           :to="`/user/my-albums/${album.AlbumId}`"
           class="group hover:bg-[#282828] rounded-lg p-4 transition-all duration-300 cursor-pointer"
@@ -70,7 +86,30 @@
           <p class="text-neutral-400 text-xs mt-1 truncate">
             {{ album.ArtistName || $t("home.unknown_artist") }}
           </p>
+          <div v-if="isPopularType" class="mt-2 space-y-1 text-[11px]">
+            <p class="text-neutral-300 truncate">
+              #{{ album.Rank || "-" }} · {{ (album.Score ?? 0).toFixed(2) }}
+            </p>
+            <p class="text-neutral-500 truncate">
+              {{ formatCompact(album.Streams) }} streams
+            </p>
+            <p class="text-neutral-500 truncate">
+              {{ formatCompact(album.UniqueListeners) }} listeners
+            </p>
+            <p class="text-neutral-500 truncate">
+              {{ formatCompact(album.SaveCount) }} saves
+            </p>
+          </div>
         </NuxtLink>
+      </div>
+
+      <!-- Error -->
+      <div v-if="!isLoading && hasError" class="text-center py-16">
+        <UIcon
+          name="i-lucide-circle-alert"
+          class="size-14 text-red-400 mb-4 mx-auto"
+        />
+        <p class="text-red-300 text-sm">{{ errorMessage }}</p>
       </div>
 
       <!-- Pagination -->
@@ -99,7 +138,7 @@
 
       <!-- Empty -->
       <div
-        v-if="!isLoading && filteredAlbums.length === 0"
+        v-if="!isLoading && !hasError && displayedAlbums.length === 0"
         class="text-center py-20"
       >
         <UIcon
@@ -116,6 +155,7 @@
 import musicApi from "~/api/musicApi";
 import recommendationApi from "~/api/recommendationApi";
 import { usePlayerStore } from "~/stores/usePlayerStore";
+import { formatNumber } from "~/utils/formatNumber";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -142,12 +182,26 @@ async function playAlbum(album) {
 }
 
 const isLoading = ref(true);
+const hasError = ref(false);
+const errorMessage = ref("");
 const albums = ref([]);
 const recommendedAlbumsAll = ref([]);
-const searchQuery = ref("");
+const searchInput = ref("");
+const debouncedKeyword = ref("");
+let searchTimeout = null;
 const currentPage = ref(1);
 const pageSize = 24;
 const totalItems = ref(0);
+const totalPagesValue = ref(1);
+const scrollMainToTop = useMainScrollTop();
+const ALLOWED_WINDOWS = ["1d", "7d", "28d", "all"];
+
+const windowOptions = [
+  { value: "1d", label: "1D" },
+  { value: "7d", label: "7D" },
+  { value: "28d", label: "28D" },
+  { value: "all", label: "All" },
+];
 
 const toNumber = (value) => {
   const parsed = Number(value);
@@ -176,21 +230,27 @@ const sortAlbumsByPopularity = (list = []) => {
   });
 };
 
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(totalItems.value / pageSize)),
-);
+const totalPages = computed(() => Math.max(1, totalPagesValue.value));
 
-const filteredAlbums = computed(() => {
-  if (!searchQuery.value.trim()) return albums.value;
-  const q = searchQuery.value.toLowerCase().trim();
+const type = computed(() => route.query.type || "popular");
+const isPopularType = computed(() => type.value === "popular");
+
+const windowType = computed(() => {
+  const raw = String(route.query.windowType || "7d").toLowerCase();
+  return ALLOWED_WINDOWS.includes(raw) ? raw : "7d";
+});
+
+const displayedAlbums = computed(() => {
+  if (isPopularType.value) return albums.value;
+
+  if (!searchInput.value.trim()) return albums.value;
+  const q = searchInput.value.toLowerCase().trim();
   return albums.value.filter(
     (a) =>
       (a.Title || "").toLowerCase().includes(q) ||
       (a.ArtistName || "").toLowerCase().includes(q),
   );
 });
-
-const type = computed(() => route.query.type || "popular");
 
 const title = computed(() => {
   if (type.value === "recommended") return t("home.recommended_albums");
@@ -210,8 +270,52 @@ const parseTotalItems = (response, fallbackLength) => {
   );
 };
 
+const parseTotalPages = (response, fallbackItems) => {
+  const rawPages = Number(
+    response?.TotalPages ||
+      response?.Pagination?.TotalPages ||
+      response?.Meta?.TotalPages ||
+      0,
+  );
+
+  if (rawPages > 0) return rawPages;
+  return Math.max(1, Math.ceil((fallbackItems || 0) / pageSize));
+};
+
+const formatCompact = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return "0";
+  return formatNumber(parsed);
+};
+
+const ensureValidWindowTypeInQuery = () => {
+  const raw = String(route.query.windowType || "7d").toLowerCase();
+  if (ALLOWED_WINDOWS.includes(raw)) return;
+
+  navigateTo({
+    query: {
+      ...route.query,
+      windowType: "7d",
+    },
+  });
+};
+
+const setWindowType = (nextType) => {
+  const target = ALLOWED_WINDOWS.includes(nextType) ? nextType : "7d";
+  if (target === windowType.value) return;
+  navigateTo({
+    query: {
+      ...route.query,
+      windowType: target,
+      page: 1,
+    },
+  });
+};
+
 const fetchAlbums = async () => {
   isLoading.value = true;
+  hasError.value = false;
+  errorMessage.value = "";
   try {
     if (type.value === "recommended" && user.value?.id) {
       if (recommendedAlbumsAll.value.length === 0) {
@@ -223,8 +327,23 @@ const fetchAlbums = async () => {
         recommendedAlbumsAll.value = sortAlbumsByPopularity(list);
       }
       totalItems.value = recommendedAlbumsAll.value.length;
+      totalPagesValue.value = Math.max(
+        1,
+        Math.ceil(totalItems.value / pageSize),
+      );
       const start = (currentPage.value - 1) * pageSize;
       albums.value = recommendedAlbumsAll.value.slice(start, start + pageSize);
+    } else if (isPopularType.value) {
+      const res = await musicApi.getPopularAlbums({
+        windowType: windowType.value,
+        keyword: debouncedKeyword.value.trim(),
+        pageIndex: currentPage.value,
+        pageSize,
+      });
+      const list = res?.Data || res || [];
+      albums.value = list;
+      totalItems.value = parseTotalItems(res, list.length);
+      totalPagesValue.value = parseTotalPages(res, totalItems.value);
     } else {
       const res = await musicApi.getAlbums({
         pageIndex: currentPage.value,
@@ -233,11 +352,15 @@ const fetchAlbums = async () => {
       const list = res?.Data || res || [];
       albums.value = list;
       totalItems.value = parseTotalItems(res, list.length);
+      totalPagesValue.value = parseTotalPages(res, totalItems.value);
     }
   } catch (error) {
     console.error("Error fetching albums:", error);
     albums.value = [];
     totalItems.value = 0;
+    totalPagesValue.value = 1;
+    hasError.value = true;
+    errorMessage.value = "Could not load albums. Please try again.";
   } finally {
     isLoading.value = false;
   }
@@ -247,14 +370,48 @@ const goToPage = (page) => {
   const safePage = Math.min(Math.max(1, page), totalPages.value);
   if (safePage === currentPage.value) return;
   currentPage.value = safePage;
+  scrollMainToTop();
   fetchAlbums();
 };
 
-watch(type, () => {
+watch(searchInput, (value) => {
+  if (!isPopularType.value) return;
+
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    debouncedKeyword.value = value;
+  }, 400);
+});
+
+watch(debouncedKeyword, () => {
+  if (!isPopularType.value) return;
   currentPage.value = 1;
-  recommendedAlbumsAll.value = [];
+  scrollMainToTop();
   fetchAlbums();
 });
 
-onMounted(fetchAlbums);
+watch(type, () => {
+  currentPage.value = 1;
+  scrollMainToTop();
+  recommendedAlbumsAll.value = [];
+  debouncedKeyword.value = "";
+  searchInput.value = "";
+  fetchAlbums();
+});
+
+watch(windowType, () => {
+  if (!isPopularType.value) return;
+  currentPage.value = 1;
+  scrollMainToTop();
+  fetchAlbums();
+});
+
+onMounted(() => {
+  ensureValidWindowTypeInQuery();
+  fetchAlbums();
+});
+
+onBeforeUnmount(() => {
+  if (searchTimeout) clearTimeout(searchTimeout);
+});
 </script>

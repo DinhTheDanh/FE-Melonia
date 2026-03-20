@@ -19,7 +19,7 @@
       </div>
       <div
         ref="recommendedSongsGridRef"
-        class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6"
+        class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4"
       >
         <div
           v-for="song in recommendedSongs.slice(
@@ -90,7 +90,7 @@
       </div>
       <div
         ref="recommendedAlbumsGridRef"
-        class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6"
+        class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4"
       >
         <NuxtLink
           v-for="album in recommendedAlbums.slice(
@@ -148,7 +148,7 @@
       </div>
       <div
         ref="featuredArtistsGridRef"
-        class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6"
+        class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4"
       >
         <NuxtLink
           v-for="artist in artists.slice(0, featuredArtistsVisibleCount)"
@@ -209,7 +209,7 @@
       </div>
       <div
         ref="popularSongsGridRef"
-        class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6"
+        class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4"
       >
         <div
           v-for="song in allSongs.slice(0, popularSongsVisibleCount)"
@@ -277,7 +277,7 @@
       </div>
       <div
         ref="popularAlbumsGridRef"
-        class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6"
+        class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4"
       >
         <NuxtLink
           v-for="album in allAlbums.slice(0, popularAlbumsVisibleCount)"
@@ -316,11 +316,29 @@
     </section>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="flex items-center justify-center py-20">
-      <UIcon
-        name="i-lucide-loader-2"
-        class="size-8 text-neutral-400 animate-spin"
-      />
+    <div v-if="isLoading" class="space-y-10 mt-8 px-2 animate-pulse">
+      <section v-for="section in 3" :key="section">
+        <div class="flex items-center justify-between mb-4">
+          <div class="h-7 w-56 rounded bg-neutral-800/80"></div>
+          <div class="h-4 w-20 rounded bg-neutral-800/70"></div>
+        </div>
+
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">
+          <div
+            v-for="item in 6"
+            :key="`skeleton-${section}-${item}`"
+            class="rounded-lg p-3 bg-[#1a1a1a]"
+          >
+            <div class="w-full aspect-square rounded-md bg-neutral-800/80 mb-4"></div>
+            <div class="h-4 w-3/4 rounded bg-neutral-800/80"></div>
+            <div class="h-3 w-1/2 rounded bg-neutral-800/60 mt-2"></div>
+            <div class="flex items-center gap-3 mt-3">
+              <div class="h-3 w-12 rounded bg-neutral-800/60"></div>
+              <div class="h-3 w-12 rounded bg-neutral-800/60"></div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- Empty State -->
@@ -494,8 +512,8 @@ const popularAlbumsVisibleCount = ref(6);
 const recommendedSongsVisibleCount = ref(6);
 const recommendedAlbumsVisibleCount = ref(6);
 
-const CARD_MIN_WIDTH = 180;
-const GRID_GAP = 24;
+const CARD_MIN_WIDTH = 230;
+const GRID_GAP = 16;
 
 const getVisibleCountForOneRow = (element, fallback = 6) => {
   const width = element?.clientWidth || 0;

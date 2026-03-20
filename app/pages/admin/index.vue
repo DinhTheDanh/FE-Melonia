@@ -571,7 +571,7 @@
       <!-- Pagination -->
       <div
         v-if="totalPages > 1"
-        class="flex items-center justify-between px-4 py-3 border-t border-white/5"
+        class="flex flex-col items-center gap-2 px-4 py-3 border-t border-white/5"
       >
         <p class="text-sm text-neutral-400">
           {{ t("admin.showing") }} {{ showingFrom }}–{{ showingTo }}
@@ -798,10 +798,11 @@ watch(searchKeyword, (val) => {
 });
 const isLoading = ref(false);
 const currentPage = ref(1);
-const pageSize = 15;
+const pageSize = 10;
 const totalItems = ref(0);
 const tabData = ref([]);
 const searchSourceData = ref([]);
+const scrollMainToTop = useMainScrollTop();
 
 const stats = ref({
   totalUsers: 0,
@@ -839,7 +840,7 @@ const statsCards = computed(() => [
     label: t("admin.total_songs"),
     value: stats.value.totalSongs,
     icon: "i-lucide-music",
-    bgColor: "bg-green-500/20",
+    bgColor: "bg-primary/20",
     iconColor: "text-green-400",
   },
   {
@@ -887,7 +888,15 @@ const displayTotalItems = computed(() =>
 );
 
 const displayData = computed(() => {
-  if (!isSearchMode.value) return filteredData.value;
+  if (!isSearchMode.value) {
+    // Genres data is loaded as a full array, so paginate client-side.
+    if (activeTab.value === "genres") {
+      const start = (currentPage.value - 1) * pageSize;
+      return filteredData.value.slice(start, start + pageSize);
+    }
+    return filteredData.value;
+  }
+
   const start = (currentPage.value - 1) * pageSize;
   return filteredData.value.slice(start, start + pageSize);
 });
@@ -972,7 +981,7 @@ const getPlanBadgeClass = (p) => {
 const getStatusBadgeClass = (s) => {
   switch (s) {
     case "Active":
-      return "bg-green-500/20 text-green-400";
+      return "bg-primary/20 text-green-400";
     case "Expired":
       return "bg-red-500/20 text-red-400";
     case "Cancelled":
@@ -985,7 +994,7 @@ const getPaymentStatusClass = (s) => {
   switch (s) {
     case "Success":
     case "Completed":
-      return "bg-green-500/20 text-green-400";
+      return "bg-primary/20 text-green-400";
     case "Pending":
       return "bg-amber-500/20 text-amber-400";
     case "Failed":
@@ -1437,13 +1446,21 @@ const fetchStats = async () => {
   } catch (error) {
     console.error("Error fetching stats:", error);
   }
+
   try {
-    if (!stats.value.totalUsers) {
-      const r = await adminApi
-        .getUsers({ pageIndex: 1, pageSize: 1 })
-        .catch(() => null);
-      if (r) stats.value.totalUsers = r.TotalRecords || r.TotalCount || 0;
+    // Always sync total users from users endpoint to reflect all accounts.
+    const usersRes = await adminApi
+      .getUsers({ pageIndex: 1, pageSize: 1 })
+      .catch(() => null);
+    if (usersRes) {
+      stats.value.totalUsers =
+        usersRes.TotalRecords || usersRes.TotalCount || stats.value.totalUsers;
     }
+  } catch {
+    /* ignore */
+  }
+
+  try {
     if (!stats.value.totalArtists) {
       const r = await artistApi
         .getArtists({ pageIndex: 1, pageSize: 1 })
@@ -1475,18 +1492,21 @@ const fetchStats = async () => {
 
 watch(activeTab, () => {
   currentPage.value = 1;
+  scrollMainToTop();
   searchKeyword.value = "";
   debouncedSearchKeyword.value = "";
   searchSourceData.value = [];
   fetchTabData();
 });
 watch(currentPage, () => {
+  scrollMainToTop();
   if (!isSearchMode.value) {
     fetchTabData();
   }
 });
 watch(debouncedSearchKeyword, async () => {
   currentPage.value = 1;
+  scrollMainToTop();
   if (!isSearchMode.value) {
     await fetchTabData();
     return;

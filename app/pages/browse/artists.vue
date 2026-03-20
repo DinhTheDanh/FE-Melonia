@@ -3,7 +3,7 @@
     <div class="px-6 pt-8">
       <div class="flex items-center gap-4 mb-6">
         <button
-          class="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+          class="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer flex items-center"
           @click="$router.back()"
         >
           <UIcon name="i-lucide-arrow-left" class="size-6 text-white" />
@@ -133,6 +133,7 @@ const searchQuery = ref("");
 const currentPage = ref(1);
 const pageSize = 24;
 const totalItems = ref(0);
+const scrollMainToTop = useMainScrollTop();
 
 const toNumber = (value) => {
   const parsed = Number(value);
@@ -263,6 +264,7 @@ const goToPage = (page) => {
   const safePage = Math.min(Math.max(1, page), totalPages.value);
   if (safePage === currentPage.value) return;
   currentPage.value = safePage;
+  scrollMainToTop();
   fetchArtists();
 };
 

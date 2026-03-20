@@ -580,6 +580,69 @@
     "payment_expired": "Thanh toán gói {plan} đã hết hạn và bị hủy",
     "role_changed": "Vai trò của bạn đã được cập nhật thành {role}"
   },
+  "settings": {
+    "title": "Cài đặt",
+    "subtitle": "Quản lý tài khoản, phát nhạc và bảo mật theo hệ thống hiện tại.",
+    "account": {
+      "section": "Tài khoản",
+      "role": "Vai trò: {role}",
+      "edit_profile": "Chỉnh sửa hồ sơ",
+      "plan_billing": "Gói và thanh toán",
+      "logout": "Đăng xuất",
+      "default_user": "Người dùng Melonia"
+    },
+    "language": {
+      "section": "Ngôn ngữ",
+      "vi": "Tiếng Việt",
+      "en": "English",
+      "updated": "Đã cập nhật ngôn ngữ."
+    },
+    "appearance": {
+      "section": "Giao diện",
+      "dark": "Nền đen",
+      "light": "Nền trắng"
+    },
+    "playback": {
+      "section": "Phát nhạc",
+      "description": "Điều chỉnh ngay trên player hiện tại.",
+      "default_volume": "Âm lượng mặc định",
+      "mute": "Tắt tiếng",
+      "muted": "Đang tắt tiếng",
+      "shuffle_on": "Shuffle: Bật",
+      "shuffle_off": "Shuffle: Tắt",
+      "repeat": "Lặp",
+      "repeat_all": "TẤT CẢ",
+      "repeat_one": "MỘT",
+      "repeat_off": "TẮT"
+    },
+    "security": {
+      "section": "Bảo mật",
+      "description": "Đổi mật khẩu cho tài khoản hiện tại.",
+      "current_password_label": "Mật khẩu hiện tại",
+      "current_password": "Mật khẩu hiện tại",
+      "new_password_label": "Mật khẩu mới",
+      "new_password": "Mật khẩu mới",
+      "confirm_password_label": "Xác nhận mật khẩu mới",
+      "confirm_password": "Nhập lại mật khẩu mới",
+      "password_hint": "Mật khẩu mới cần ít nhất 10 ký tự, gồm chữ và số hoặc ký tự đặc biệt.",
+      "change_password": "Đổi mật khẩu",
+      "updating": "Đang cập nhật...",
+      "changed_success": "Đổi mật khẩu thành công.",
+      "error_required": "Vui lòng nhập đầy đủ thông tin.",
+      "error_password_short": "Mật khẩu mới phải từ 10 ký tự.",
+      "error_password_mismatch": "Xác nhận mật khẩu không khớp.",
+      "toast_success": "Đã đổi mật khẩu thành công.",
+      "toast_error": "Không thể đổi mật khẩu. Vui lòng thử lại."
+    },
+    "notifications": {
+      "section": "Thông báo",
+      "description": "Quản lý thông báo trong hệ thống.",
+      "mark_all_read": "Đánh dấu đã đọc tất cả",
+      "back_home": "Về trang chủ",
+      "mark_all_success": "Đã đánh dấu tất cả thông báo là đã đọc.",
+      "mark_all_error": "Không thể cập nhật thông báo."
+    }
+  },
   "footer": {
     "company": "Công ty",
     "about": "Giới thiệu",

@@ -579,6 +579,69 @@
     "payment_expired": "Your pending payment for {plan} has expired and was cancelled",
     "role_changed": "Your role has been updated to {role}"
   },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage account, playback, and security based on the current system.",
+    "account": {
+      "section": "Account",
+      "role": "Role: {role}",
+      "edit_profile": "Edit profile",
+      "plan_billing": "Plan & billing",
+      "logout": "Log out",
+      "default_user": "Melonia User"
+    },
+    "language": {
+      "section": "Language",
+      "vi": "Vietnamese",
+      "en": "English",
+      "updated": "Language updated."
+    },
+    "appearance": {
+      "section": "Appearance",
+      "dark": "Dark background",
+      "light": "Light background"
+    },
+    "playback": {
+      "section": "Playback",
+      "description": "Adjust directly on the current player.",
+      "default_volume": "Default volume",
+      "mute": "Mute",
+      "muted": "Muted",
+      "shuffle_on": "Shuffle: ON",
+      "shuffle_off": "Shuffle: OFF",
+      "repeat": "Repeat",
+      "repeat_all": "ALL",
+      "repeat_one": "ONE",
+      "repeat_off": "OFF"
+    },
+    "security": {
+      "section": "Security",
+      "description": "Change password for your current account.",
+      "current_password_label": "Current password",
+      "current_password": "Current password",
+      "new_password_label": "New password",
+      "new_password": "New password",
+      "confirm_password_label": "Confirm new password",
+      "confirm_password": "Confirm new password",
+      "password_hint": "Your new password should be at least 10 characters and include letters plus numbers or symbols.",
+      "change_password": "Change password",
+      "updating": "Updating...",
+      "changed_success": "Password changed successfully.",
+      "error_required": "Please fill in all required fields.",
+      "error_password_short": "New password must be at least 10 characters.",
+      "error_password_mismatch": "Password confirmation does not match.",
+      "toast_success": "Password has been changed successfully.",
+      "toast_error": "Could not change password. Please try again."
+    },
+    "notifications": {
+      "section": "Notifications",
+      "description": "Manage notifications in the system.",
+      "mark_all_read": "Mark all as read",
+      "back_home": "Back to home",
+      "mark_all_success": "All notifications marked as read.",
+      "mark_all_error": "Could not update notifications."
+    }
+  },
   "footer": {
     "company": "Company",
     "about": "About",

@@ -123,7 +123,7 @@
               class="text-xs px-2 py-1 rounded-full"
               :class="
                 chart.delta >= 0
-                  ? 'bg-green-500/20 text-green-400'
+                  ? 'bg-primary/20 text-green-400'
                   : 'bg-red-500/20 text-red-400'
               "
             >

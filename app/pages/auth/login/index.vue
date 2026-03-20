@@ -86,7 +86,7 @@
 
         <!-- Sign up link -->
         <div class="mt-8 w-full text-center">
-          <p class="text-gray-400 font-medium flex items-center">
+          <p class="text-gray-400 font-medium flex items-center justify-center">
             {{ t("auth.login.no_account") }}
             <NuxtLink
               to="/auth/register"

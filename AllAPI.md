@@ -855,6 +855,49 @@ GET /Music/albums?keyword=&pageIndex=1&pageSize=10
 
 ---
 
+### 24.5. Get Popular Albums
+
+```
+GET /Music/albums/popular?windowType=7d&keyword=&pageIndex=1&pageSize=10
+```
+
+**Params:**
+
+- `windowType` (string, optional) - `1d`, `7d`, `28d`, `all` (mặc định `7d`)
+- `keyword` (string, optional) - Tìm kiếm theo tên album
+- `pageIndex` (int)
+- `pageSize` (int)
+
+**Response:** PagingResult<PopularAlbumDto>
+
+```json
+{
+  "Data": [
+    {
+      "AlbumId": "94f4b80a-0a95-42d7-858a-a0a4f80d80ab",
+      "Title": "Top Album",
+      "Thumbnail": "https://res.cloudinary.com/.../album.webp",
+      "ArtistId": "514685e6-5141-40c6-84c6-37c43da959aa",
+      "ArtistName": "Dinh The Danh",
+      "ReleaseDate": "2026-02-07T22:01:48",
+      "CreatedAt": "2026-02-07T22:01:48",
+      "UpdatedAt": null,
+      "Score": 92.54,
+      "Rank": 1,
+      "Streams": 12540,
+      "UniqueListeners": 4820,
+      "SaveCount": 690
+    }
+  ],
+  "TotalRecords": 120,
+  "TotalPages": 12,
+  "FromRecord": 1,
+  "ToRecord": 10
+}
+```
+
+---
+
 ### 25. Get My Albums ✅
 
 ```
@@ -1790,6 +1833,42 @@ GET /Recommendation/albums/{userId}?topN=10
 | CreatedAt   | DateTime | ❌       | Ngày tạo       |
 | UpdatedAt   | DateTime | ✅       | Ngày cập nhật  |
 
+### PopularAlbumDto
+
+```json
+{
+  "AlbumId": "94f4b80a-0a95-42d7-858a-a0a4f80d80ab",
+  "Title": "Top Album",
+  "Thumbnail": "https://res.cloudinary.com/.../album.webp",
+  "ArtistId": "514685e6-5141-40c6-84c6-37c43da959aa",
+  "ArtistName": "Dinh The Danh",
+  "ReleaseDate": "2026-02-07T22:01:48",
+  "CreatedAt": "2026-02-07T22:01:48",
+  "UpdatedAt": null,
+  "Score": 92.54,
+  "Rank": 1,
+  "Streams": 12540,
+  "UniqueListeners": 4820,
+  "SaveCount": 690
+}
+```
+
+| Field           | Type     | Nullable | Mô tả                                 |
+| --------------- | -------- | -------- | ------------------------------------- |
+| AlbumId         | Guid     | ❌       | ID album                              |
+| Title           | string   | ❌       | Tên album                             |
+| Thumbnail       | string   | ✅       | Ảnh bìa                               |
+| ArtistId        | Guid     | ❌       | ID nghệ sĩ tạo                        |
+| ArtistName      | string   | ❌       | Tên nghệ sĩ                           |
+| ReleaseDate     | DateTime | ❌       | Ngày phát hành                        |
+| CreatedAt       | DateTime | ❌       | Ngày tạo                              |
+| UpdatedAt       | DateTime | ✅       | Ngày cập nhật                         |
+| Score           | double   | ❌       | Điểm popularity đã tính toán          |
+| Rank            | int      | ❌       | Thứ hạng trong window                 |
+| Streams         | int      | ❌       | Tổng lượt nghe trong window           |
+| UniqueListeners | int      | ❌       | Số user nghe duy nhất trong window    |
+| SaveCount       | int      | ❌       | Số lượt lưu album (save) trong window |
+
 ### PlaylistDto
 
 ```json
@@ -2537,6 +2616,7 @@ Hệ thống tự động gửi thông báo (notification + SignalR push) trong 
 | 23   | `/Music/check-hash/{hash}`                     | GET    | ❌   | Kiểm tra file trùng            |
 | -    | **MUSIC (ALBUMS)**                             |        |      |                                |
 | 24   | `/Music/albums`                                | GET    | ❌   | Tất cả album (search)          |
+| 24.5 | `/Music/albums/popular`                        | GET    | ❌   | Album phổ biến theo window     |
 | 25   | `/Music/my-albums`                             | GET    | ✅   | Album của mình                 |
 | 26   | `/Music/album`                                 | POST   | ✅   | Tạo album                      |
 | 27   | `/Music/album/{id}`                            | PUT    | ✅   | Cập nhật album                 |
@@ -2608,4 +2688,4 @@ Hệ thống tự động gửi thông báo (notification + SignalR push) trong 
 
 ---
 
-**Total: 9 Auth + 3 User + 4 Artist + 3 File + 31 Feature + 5 Payment + 7 Subscription + 2 Genre (Admin) + 15 Admin + 4 Notification = 83 Endpoints** ✅
+**Total: 9 Auth + 3 User + 4 Artist + 3 File + 32 Feature + 5 Payment + 7 Subscription + 2 Genre (Admin) + 15 Admin + 4 Notification = 84 Endpoints** ✅

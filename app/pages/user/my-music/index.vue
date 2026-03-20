@@ -609,6 +609,7 @@ const searchInput = ref("");
 const searchQuery = ref("");
 const currentPage = ref(1);
 const itemsPerPage = ref(20);
+const scrollMainToTop = useMainScrollTop();
 
 // Debounce search
 let searchTimeout = null;
@@ -617,6 +618,7 @@ watch(searchInput, (newValue) => {
   searchTimeout = setTimeout(() => {
     searchQuery.value = newValue;
     currentPage.value = 1;
+    scrollMainToTop();
   }, 300);
 });
 
@@ -659,7 +661,14 @@ const getSongId = (song) => {
   return song?.SongId || song?.Id || song?.songId || null;
 };
 
-watch(itemsPerPage, () => (currentPage.value = 1));
+watch(itemsPerPage, () => {
+  currentPage.value = 1;
+  scrollMainToTop();
+});
+
+watch(currentPage, () => {
+  scrollMainToTop();
+});
 
 // Selection
 const isAllSelected = computed(() => {

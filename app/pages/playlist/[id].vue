@@ -64,7 +64,7 @@
       <!-- Header -->
       <div
         ref="headerRef"
-        class="relative -mx-4 -mt-4 px-8 pt-16 pb-8"
+        class="relative -mx-4 -mt-4 px-8 pt-16 pb-4"
         :style="{
           background: `linear-gradient(180deg, ${playlistColor} 0%, ${playlistColorDark} 40%, #121212 100%)`,
         }"
@@ -137,56 +137,49 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Action Bar -->
-      <div class="flex items-center gap-6 px-8 py-4">
-        <!-- Play Button -->
-        <button
-          class="w-14 h-14 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="songs.length === 0"
-          @click="togglePlayAll"
-        >
-          <UIcon
-            v-if="isPlayingThisPlaylist"
-            name="i-fa6-solid-pause"
-            class="size-6 text-white"
-          />
-          <UIcon
-            v-else
-            name="i-fa6-solid-play"
-            class="size-6 text-white ml-0.5"
-          />
-        </button>
+        <!-- Action Bar -->
+        <div class="flex items-center gap-6 pt-8 pb-2">
+          <!-- Play Button -->
+          <button
+            class="w-14 h-14 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="songs.length === 0"
+            @click="togglePlayAll"
+          >
+            <UIcon
+              v-if="isPlayingThisPlaylist"
+              name="i-fa6-solid-pause"
+              class="size-6 text-white"
+            />
+            <UIcon
+              v-else
+              name="i-fa6-solid-play"
+              class="size-6 text-white ml-0.5"
+            />
+          </button>
 
-        <!-- Shuffle -->
-        <button
-          class="p-2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-          @click="shufflePlay"
-        >
-          <UIcon name="i-lucide-shuffle" class="size-7" />
-        </button>
-
-        <!-- More Options Dropdown -->
-        <UDropdownMenu
-          :items="playlistMenuItems"
-          :ui="{
-            content: 'w-52 bg-[#282828] border-none shadow-xl p-1',
-            item: 'flex items-center gap-2 px-3 py-2.5 text-sm text-gray-200 hover:bg-white/10 hover:text-white rounded-sm cursor-pointer',
-          }"
-        >
+          <!-- Shuffle -->
           <button
             class="p-2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            @click="shufflePlay"
           >
-            <UIcon name="i-lucide-more-horizontal" class="size-7" />
+            <UIcon name="i-lucide-shuffle" class="size-7" />
           </button>
-        </UDropdownMenu>
 
-        <!-- View toggle (right side) -->
-        <div class="flex-1"></div>
-        <div class="flex items-center gap-2 text-neutral-400">
-          <span class="text-sm">{{ t("playlist.list_view") }}</span>
-          <UIcon name="i-lucide-list" class="size-5" />
+          <!-- More Options Dropdown -->
+          <UDropdownMenu
+            :items="playlistMenuItems"
+            :ui="{
+              content: 'w-52 bg-[#282828] border-none shadow-xl p-1',
+              item: 'flex items-center gap-2 px-3 py-2.5 text-sm text-gray-200 hover:bg-white/10 hover:text-white rounded-sm cursor-pointer',
+            }"
+          >
+            <button
+              class="p-2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <UIcon name="i-lucide-more-horizontal" class="size-7" />
+            </button>
+          </UDropdownMenu>
         </div>
       </div>
 
@@ -620,6 +613,7 @@ const playlistThumbnailOverrides = useState(
   "playlistThumbnailOverrides",
   () => ({}),
 );
+const playlistTitleOverrides = useState("playlistTitleOverrides", () => ({}));
 
 // Search State
 const showSearch = ref(true);
@@ -641,34 +635,43 @@ let stickyObserver = null;
 const recommendedSongs = ref([]);
 
 // Playlist header gradient color based on thumbnail
-const playlistColor = ref("#535353");
-const playlistColorDark = ref("#333333");
+const playlistThumbUrl = computed(() => playlist.value?.Thumbnail || null);
+const { dominantColor } = useDominantColor(playlistThumbUrl);
 
-const extractColor = (thumbnail) => {
-  if (!thumbnail) {
-    playlistColor.value = "#535353";
-    playlistColorDark.value = "#333333";
-    return;
-  }
-  const img = new Image();
-  img.crossOrigin = "anonymous";
-  img.onload = () => {
-    try {
-      const canvas = document.createElement("canvas");
-      canvas.width = 1;
-      canvas.height = 1;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, 1, 1);
-      const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-      playlistColor.value = `rgb(${r}, ${g}, ${b})`;
-      playlistColorDark.value = `rgb(${Math.floor(r * 0.4)}, ${Math.floor(g * 0.4)}, ${Math.floor(b * 0.4)})`;
-    } catch {
-      playlistColor.value = "#535353";
-      playlistColorDark.value = "#333333";
-    }
+const parseRgbColor = (color) => {
+  if (!color || !color.startsWith("rgb")) return null;
+  const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (!match) return null;
+  return {
+    r: parseInt(match[1], 10),
+    g: parseInt(match[2], 10),
+    b: parseInt(match[3], 10),
   };
-  img.src = thumbnail;
 };
+
+const buildTone = (base, { mixWhite = 0, intensity = 1, floor = 0 }) => {
+  const mixedR = base.r * (1 - mixWhite) + 255 * mixWhite;
+  const mixedG = base.g * (1 - mixWhite) + 255 * mixWhite;
+  const mixedB = base.b * (1 - mixWhite) + 255 * mixWhite;
+
+  const r = Math.max(floor, Math.min(255, Math.round(mixedR * intensity)));
+  const g = Math.max(floor, Math.min(255, Math.round(mixedG * intensity)));
+  const b = Math.max(floor, Math.min(255, Math.round(mixedB * intensity)));
+
+  return `rgb(${r}, ${g}, ${b})`;
+};
+
+const playlistColor = computed(() => {
+  const base = parseRgbColor(dominantColor.value);
+  if (!base) return "#4f4f6d";
+  return buildTone(base, { mixWhite: 0.2, intensity: 0.7, floor: 34 });
+});
+
+const playlistColorDark = computed(() => {
+  const base = parseRgbColor(dominantColor.value);
+  if (!base) return "#2e2e40";
+  return buildTone(base, { mixWhite: 0.08, intensity: 0.45, floor: 22 });
+});
 
 const totalDuration = computed(() => {
   const total = songs.value.reduce((acc, s) => acc + (s.Duration || 0), 0);
@@ -736,11 +739,6 @@ const fetchPlaylist = async () => {
 
     // Read IsPublic from playlist data
     isPublic.value = playlist.value?.IsPublic !== false;
-
-    // Extract dominant color from playlist thumbnail
-    if (playlist.value?.Thumbnail) {
-      extractColor(playlist.value.Thumbnail);
-    }
   } catch (error) {
     console.error("Error fetching playlist:", error);
     playlist.value = null;
@@ -928,9 +926,10 @@ const handleUpdatePlaylist = async () => {
     await interactionApi.updatePlaylist(route.params.id, updateData);
     playlist.value.Title = editTitle.value.trim();
     playlist.value.Description = editDescription.value.trim();
+    playlistTitleOverrides.value[route.params.id] = editTitle.value.trim();
+
     if (thumbnailUrl) {
       playlist.value.Thumbnail = thumbnailUrl;
-      extractColor(thumbnailUrl);
       // Store override so sidebar shows updated thumbnail (even if BE doesn't persist it)
       playlistThumbnailOverrides.value[route.params.id] = thumbnailUrl;
     }
@@ -938,6 +937,9 @@ const handleUpdatePlaylist = async () => {
 
     // Signal sidebar to refresh
     sidebarRefreshKey.value++;
+
+    showStickyHeader.value = false;
+    nextTick(() => setupStickyObserver());
 
     toast.add({
       title: t("notify.success"),
@@ -1091,6 +1093,13 @@ const setupStickyObserver = () => {
   }
 };
 
+const reloadPlaylistPageData = async () => {
+  showStickyHeader.value = false;
+  await fetchPlaylist();
+  fetchRecommendations();
+  nextTick(() => setupStickyObserver());
+};
+
 // Toggle playlist visibility
 const toggleVisibility = async () => {
   try {
@@ -1161,10 +1170,7 @@ const playlistMenuItems = computed(() => [
 ]);
 
 onMounted(() => {
-  fetchPlaylist().then(() => {
-    fetchRecommendations();
-    nextTick(() => setupStickyObserver());
-  });
+  reloadPlaylistPageData();
 });
 
 onUnmounted(() => {
@@ -1175,11 +1181,7 @@ watch(
   () => route.params.id,
   (newId) => {
     if (newId) {
-      showStickyHeader.value = false;
-      fetchPlaylist().then(() => {
-        fetchRecommendations();
-        nextTick(() => setupStickyObserver());
-      });
+      reloadPlaylistPageData();
     }
   },
   { immediate: false },
@@ -1187,7 +1189,9 @@ watch(
 
 // Re-fetch playlist when songs are added/removed from other components (popover, context menu)
 watch(sidebarRefreshKey, () => {
-  if (route.params.id) fetchPlaylist();
+  if (route.params.id) {
+    reloadPlaylistPageData();
+  }
 });
 </script>
 

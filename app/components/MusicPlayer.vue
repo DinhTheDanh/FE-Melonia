@@ -104,7 +104,7 @@
                 v-if="currentTrackLiked"
                 class="flex items-center justify-center w-5 h-5 rounded-full bg-primary hover:scale-110 transition-all"
               >
-                <UIcon name="i-lucide-check" class="size-3.5 text-black" />
+                <UIcon name="i-lucide-check" class="size-3.5 text-white" />
               </span>
               <!-- Not liked state: subtle plus circle -->
               <span
@@ -291,7 +291,7 @@
           :ui="{ content: 'bg-[#282828]' }"
         >
           <button
-            class="p-1.5 transition-colors cursor-pointer"
+            class="p-1.5 transition-colors cursor-pointer flex items-center"
             :class="
               showQueue
                 ? 'text-purple-500'

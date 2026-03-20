@@ -27,7 +27,7 @@ const authApi = {
   },
 
   // Refresh token
-  refreshToken(data) {
+  refreshToken(data = {}) {
     return axiosClient.post("/Auth/refresh-token", data);
   },
 

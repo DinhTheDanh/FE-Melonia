@@ -2,11 +2,11 @@
   <div class="min-h-screen pb-8 px-4">
     <!-- No query: show genre categories -->
     <div v-if="!query">
-      <h2 class="text-2xl font-bold text-white mt-6 mb-6">
+      <h2 class="text-3xl font-bold text-white my-8">
         {{ t("search.browse_all") }}
       </h2>
       <div
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6"
       >
         <NuxtLink
           v-for="(genre, index) in genres"
@@ -18,7 +18,7 @@
           }"
         >
           <span
-            class="text-xl font-bold text-white relative z-10 drop-shadow-lg"
+            class="text-3xl font-bold text-white relative z-10 drop-shadow-lg"
           >
             {{ genre.Name }}
           </span>
@@ -26,7 +26,7 @@
             v-if="genre.ImageUrl"
             :src="genre.ImageUrl"
             :alt="genre.Name"
-            class="absolute bottom-2 right-2 w-24 h-24 object-cover rounded-md rotate-[25deg] translate-x-2 translate-y-2 shadow-lg opacity-90 group-hover:opacity-100 transition-opacity"
+            class="absolute bottom-2 right-0 w-32 h-32 object-cover rounded-md rotate-25 translate-x-2 translate-y-2 shadow-lg opacity-90 group-hover:opacity-100 transition-opacity"
           />
         </NuxtLink>
       </div>

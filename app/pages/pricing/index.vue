@@ -13,11 +13,11 @@
     <!-- Active subscription banner -->
     <div v-if="activeSubscription" class="max-w-3xl mx-auto mb-8 px-4">
       <div
-        class="bg-linear-to-r from-green-500/20 to-green-500/5 border border-green-500/30 rounded-xl p-5 flex items-center justify-between gap-4"
+        class="bg-linear-to-r from-primary/20 to-primary/5 border border-primary/30 rounded-xl p-5 flex items-center justify-between gap-4"
       >
         <div class="flex items-center gap-3">
           <div
-            class="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center"
+            class="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center"
           >
             <UIcon name="i-lucide-crown" class="size-5 text-green-400" />
           </div>
@@ -37,7 +37,7 @@
           </div>
         </div>
         <span
-          class="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded-full uppercase"
+          class="px-3 py-1 bg-primary/20 text-green-400 text-xs font-bold rounded-full uppercase"
         >
           {{ t("pricing.active") }}
         </span>
@@ -453,7 +453,7 @@ const getRoleBadgeClass = (role) => {
 const getStatusClass = (status) => {
   switch (status) {
     case "Success":
-      return "bg-green-500/20 text-green-400";
+      return "bg-primary/20 text-green-400";
     case "Failed":
       return "bg-red-500/20 text-red-400";
     case "Pending":

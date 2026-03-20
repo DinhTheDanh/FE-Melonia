@@ -4,7 +4,7 @@
     <div
       v-show="showStickyHeader"
       class="sticky top-0 z-30 px-6 py-3 flex items-center gap-4 transition-all duration-300"
-      style="background-color: #1e1344"
+      style="background: linear-gradient(180deg, #5038a0 0%, #29185e 100%)"
     >
       <button
         class="w-12 h-12 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg shadow-black/40 cursor-pointer"
@@ -29,7 +29,7 @@
     <!-- Spotify-style Liked Songs Header -->
     <div
       ref="headerRef"
-      class="relative -mx-4 -mt-4 px-8 pt-16 pb-8"
+      class="relative -mx-4 -mt-4 px-8 pt-16 pb-4"
       style="
         background: linear-gradient(
           180deg,
@@ -74,36 +74,40 @@
           </div>
         </div>
       </div>
+
+      <!-- Action Bar -->
+      <div ref="actionBarRef" class="flex items-center gap-6 pt-8 pb-2">
+        <!-- Big Play Button -->
+        <button
+          class="w-14 h-14 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg shadow-black/40 cursor-pointer"
+          @click="togglePlayAllLiked"
+        >
+          <UIcon
+            v-if="isPlayingLikedSongs"
+            name="i-fa6-solid-pause"
+            class="size-6 text-white"
+          />
+          <UIcon
+            v-else
+            name="i-fa6-solid-play"
+            class="size-6 text-white ml-1"
+          />
+        </button>
+
+        <!-- Shuffle Button -->
+        <UTooltip :text="t('player.shuffle_off')" arrow>
+          <button
+            class="p-2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            @click="shuffleAllLiked"
+          >
+            <UIcon name="i-lucide-shuffle" class="size-7" />
+          </button>
+        </UTooltip>
+      </div>
     </div>
 
     <!-- Sentinel for sticky header detection -->
     <div ref="headerSentinel" class="h-px w-full"></div>
-
-    <!-- Action Bar -->
-    <div ref="actionBarRef" class="flex items-center gap-6 px-8 py-4">
-      <!-- Big Play Button -->
-      <button
-        class="w-14 h-14 bg-primary-500 hover:bg-primary-400 hover:scale-105 rounded-full flex items-center justify-center transition-all shadow-lg shadow-black/40 cursor-pointer"
-        @click="togglePlayAllLiked"
-      >
-        <UIcon
-          v-if="isPlayingLikedSongs"
-          name="i-fa6-solid-pause"
-          class="size-6 text-white"
-        />
-        <UIcon v-else name="i-fa6-solid-play" class="size-6 text-white ml-1" />
-      </button>
-
-      <!-- Shuffle Button -->
-      <UTooltip :text="t('player.shuffle_off')" arrow>
-        <button
-          class="p-2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-          @click="shuffleAllLiked"
-        >
-          <UIcon name="i-lucide-shuffle" class="size-7" />
-        </button>
-      </UTooltip>
-    </div>
 
     <!-- Songs Table -->
     <div class="px-4 mt-2">

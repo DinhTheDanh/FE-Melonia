@@ -8,6 +8,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     "/auth/register",
     "/auth/forgot-password",
     "/auth/reset-password",
+    "/reset-password",
   ];
   const isAuthRoute = authRoutes.some((route) => to.path.startsWith(route));
 
@@ -47,6 +48,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
             "http://localhost:5111/api/v1/Auth/refresh-token",
             {
               method: "POST",
+              body: JSON.stringify({}),
               credentials: "include", // Send cookies (refresh token)
               headers: {
                 "Content-Type": "application/json",

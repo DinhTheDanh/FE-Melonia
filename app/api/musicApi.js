@@ -16,6 +16,11 @@ const musicApi = {
     return axiosClient.get("/Music/albums", { params });
   },
 
+  // Lấy albums popular theo khoảng thời gian
+  getPopularAlbums(params) {
+    return axiosClient.get("/Music/albums/popular", { params });
+  },
+
   // Tạo bài hát
   createSong(data) {
     return axiosClient.post("/Music/song", data);

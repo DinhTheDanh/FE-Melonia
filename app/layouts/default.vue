@@ -14,10 +14,9 @@
           class="p-2.5 bg-[#1F1F1F] rounded-full flex items-center justify-center hover:bg-neutral-700 cursor-pointer"
         >
           <UIcon
-            :name="
-              route.path == '/' ? 'i-fa6-solid-house' : 'i-fa6-solid-house'
-            "
-            class="size-6"
+            name="i-fa6-solid-house"
+            class="size-6 transition-colors"
+            :class="route.path === '/' ? 'text-white' : 'text-neutral-400'"
           />
         </NuxtLink>
         <div
@@ -33,7 +32,7 @@
             icon="i-lucide-search"
             size="md"
             variant="ghost"
-            class="w-full"
+            class="w-full text-2xl"
             :ui="{ base: 'hover:bg-transparent focus:bg-transparent' }"
             :placeholder="t('header.search_placeholder')"
             @keyup.enter="navigateToSearch"
@@ -61,7 +60,7 @@
         <!-- Notification Bell -->
         <div class="relative" ref="notifDropdownRef">
           <button
-            class="relative p-2 rounded-full hover:bg-white/10 transition-all duration-200 cursor-pointer group"
+            class="relative p-2 rounded-full hover:bg-white/10 transition-all flex items-center duration-200 cursor-pointer group"
             @click="toggleNotifDropdown"
           >
             <UIcon
@@ -184,8 +183,8 @@
           :placement="'bottom-end'"
           :items="dropdownItems"
           :ui="{
-            content: 'w-52 bg-[#282828] border-none shadow-xl p-1',
-            item: 'flex items-center gap-2 px-3 py-2.5 text-sm text-gray-200 hover:bg-white/10 hover:text-white rounded-sm cursor-pointer transition-colors',
+            content: 'w-52 bg-[#282828] border-none shadow-xl p-2',
+            item: 'flex items-center gap-2 px-3 py-2.5 my-1 text-sm text-gray-200 hover:bg-white/10 hover:text-white rounded-sm cursor-pointer transition-colors',
             itemLeadingIcon: 'size-4 text-gray-400 shrink-0',
           }"
         >
@@ -282,7 +281,7 @@
               <UTooltip
                 v-for="playlist in userPlaylists"
                 :key="playlist.PlaylistId || playlist.Id"
-                :text="playlist.Title || playlist.Name"
+                :text="getPlaylistName(playlist)"
                 arrow
                 :ui="{ content: 'bg-[#282828]' }"
                 :side="'right'"
@@ -302,7 +301,7 @@
                     <img
                       v-if="getPlaylistThumb(playlist)"
                       :src="getPlaylistThumb(playlist)"
-                      :alt="playlist.Title"
+                      :alt="getPlaylistName(playlist)"
                       class="w-full h-full object-cover"
                     />
                     <UIcon
@@ -375,7 +374,7 @@
                     {{ t("sidebar.liked_songs") }}
                   </p>
                   <p class="text-xs text-neutral-400 flex items-center gap-1">
-                    <UIcon name="i-lucide-pin" class="size-3 text-green-500" />
+                    <UIcon name="i-lucide-pin" class="size-3 text-primary" />
                     {{ t("sidebar.playlist_label") }} ·
                     {{ likedSongsStore.totalCount }}
                     {{ t("sidebar.songs_label") }}
@@ -401,7 +400,7 @@
                   <img
                     v-if="getPlaylistThumb(playlist)"
                     :src="getPlaylistThumb(playlist)"
-                    :alt="playlist.Title"
+                    :alt="getPlaylistName(playlist)"
                     class="w-full h-full object-cover"
                   />
                   <UIcon
@@ -412,7 +411,7 @@
                 </div>
                 <div class="min-w-0 flex-1">
                   <p class="text-sm font-medium truncate text-white">
-                    {{ playlist.Title || playlist.Name }}
+                    {{ getPlaylistName(playlist) }}
                   </p>
                   <p
                     class="text-xs text-neutral-400 truncate flex items-center gap-1"
@@ -453,9 +452,11 @@ import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
 const route = useRoute();
 const data = ref(null);
 const toast = useToast();
-const { t } = useI18n();
+const { t, locale, setLocale } = useI18n();
+const switchLocalePath = useSwitchLocalePath();
 const { logout, user, saveTokens } = useAuth();
 const likedSongsStore = useLikedSongsStore();
+const isLocaleSyncing = ref(false);
 
 // Sidebar playlists
 const userPlaylists = ref([]);
@@ -646,7 +647,6 @@ const dropdownItems = computed(() => {
   // Artist/Admin content creation items
   if (isArtistOrAdmin.value) {
     items.push(
-      { type: "separator" },
       {
         label: t("header.dashboard"),
         to: "/user",
@@ -673,25 +673,25 @@ const dropdownItems = computed(() => {
 
   // Admin panel
   if (isAdmin.value) {
-    items.push(
-      { type: "separator" },
-      {
-        label: t("header.admin"),
-        to: "/admin",
-        icon: "i-lucide-shield",
-      },
-    );
+    items.push({
+      label: t("header.admin"),
+      to: "/admin",
+      icon: "i-lucide-shield",
+    });
   }
 
   // Common items
   items.push(
-    { type: "separator" },
     {
       label: t("header.pricing"),
       to: "/pricing",
       icon: "i-lucide-crown",
     },
-    { type: "separator" },
+    {
+      label: t("header.settings"),
+      to: "/settings",
+      icon: "i-lucide-settings",
+    },
     {
       label: t("header.logout"),
       icon: "i-lucide-log-out",
@@ -787,6 +787,13 @@ const fetchUserData = async () => {
 };
 
 onMounted(() => {
+  if (import.meta.client) {
+    const storedLocale = localStorage.getItem("app-locale");
+    if (storedLocale && storedLocale !== locale.value) {
+      setLocale(storedLocale);
+    }
+  }
+
   fetchUserData();
   fetchUserPlaylists();
   // Load liked songs count for sidebar
@@ -798,6 +805,27 @@ onMounted(() => {
   notifPollTimer = setInterval(fetchUnreadCount, 30000);
   document.addEventListener("click", handleClickOutside);
 });
+
+watch(
+  () => route.fullPath,
+  async () => {
+    if (!import.meta.client || isLocaleSyncing.value) return;
+
+    const preferredLocale = localStorage.getItem("app-locale");
+    if (!preferredLocale || preferredLocale === locale.value) return;
+
+    isLocaleSyncing.value = true;
+    try {
+      await setLocale(preferredLocale);
+      const targetPath = switchLocalePath(preferredLocale);
+      if (targetPath && targetPath !== route.fullPath) {
+        await navigateTo(targetPath, { replace: true });
+      }
+    } finally {
+      isLocaleSyncing.value = false;
+    }
+  },
+);
 
 onBeforeUnmount(() => {
   clearInterval(notifPollTimer);
@@ -815,6 +843,15 @@ const playlistThumbnailOverrides = useState(
   "playlistThumbnailOverrides",
   () => ({}),
 );
+const playlistTitleOverrides = useState("playlistTitleOverrides", () => ({}));
+
+const getPlaylistName = (playlist) => {
+  const id = playlist?.PlaylistId || playlist?.Id;
+  if (id && playlistTitleOverrides.value[id]) {
+    return playlistTitleOverrides.value[id];
+  }
+  return playlist?.Title || playlist?.Name || "";
+};
 
 // Helper: get real thumbnail (check local overrides first, filter dicebear)
 const getPlaylistThumb = (playlist) => {

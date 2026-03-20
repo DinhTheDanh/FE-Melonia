@@ -17,7 +17,7 @@
       class="text-center max-w-md"
     >
       <div
-        class="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6"
+        class="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6"
       >
         <UIcon name="i-lucide-check-circle" class="size-10 text-green-400" />
       </div>
@@ -50,7 +50,7 @@
             t("pricing.status")
           }}</span>
           <span
-            class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-green-500/20 text-green-400"
+            class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-primary/20 text-green-400"
           >
             {{ t("payment.success") }}
           </span>
@@ -147,6 +147,7 @@ onMounted(async () => {
       try {
         const refreshRes = await fetch(`${API_BASE}/Auth/refresh-token`, {
           method: "POST",
+          body: JSON.stringify({}),
           credentials: "include",
           headers: { "Content-Type": "application/json" },
         });
