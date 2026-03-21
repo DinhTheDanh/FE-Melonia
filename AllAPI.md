@@ -701,6 +701,43 @@ GET /Music/my-songs?keyword=&pageIndex=1&pageSize=10
 
 ---
 
+### 19.5. Get My Scheduled Songs ✅
+
+```
+GET /Music/my-scheduled-songs?status=all&pageIndex=1&pageSize=20
+```
+
+**Params:**
+
+- `status` (string, optional): `pending`, `upcoming`, `all` (mặc định `all`)
+- `pageIndex` (int, optional): mặc định `1`
+- `pageSize` (int, optional): mặc định `20`
+
+**Response:** PagingResult<ScheduledSongQueueItemDto>
+
+```json
+{
+  "Data": [
+    {
+      "SongId": "a6f970fe-7549-41e1-8244-d1a2aa5aae1d",
+      "Title": "My Scheduled Track",
+      "ArtistNames": "Dinh The Danh",
+      "Thumbnail": "https://res.cloudinary.com/.../thumb.jpg",
+      "ScheduledReleaseAt": "2026-03-26T14:00:00",
+      "ReleaseStatus": "scheduled",
+      "CreatedAt": "2026-03-21T10:00:00",
+      "UpdatedAt": "2026-03-21T10:05:00"
+    }
+  ],
+  "TotalRecords": 12,
+  "TotalPages": 1,
+  "FromRecord": 1,
+  "ToRecord": 12
+}
+```
+
+---
+
 ### 20. Create Song ✅
 
 ```
@@ -716,7 +753,8 @@ Content-Type: application/json
   "Duration": 180,
   "GenreIds": ["genre-guid-1", "genre-guid-2"],
   "Lyrics": "Lời bài hát... (optional)",
-  "FileHash": "4a0dcd618452d123fab76723c54ae035 (optional)"
+  "FileHash": "4a0dcd618452d123fab76723c54ae035 (optional)",
+  "ScheduledReleaseAt": "2026-03-25T14:00:00Z (optional, UTC)"
 }
 ```
 
@@ -732,6 +770,9 @@ Content-Type: application/json
   "Duration": 180,
   "Lyrics": "Lời bài hát...",
   "IsPublic": true,
+  "ScheduledReleaseAt": null,
+  "ReleaseStatus": "published",
+  "PublishedAt": "2026-03-07T10:00:00",
   "CreatedAt": "2026-03-07T10:00:00",
   "UpdatedAt": null,
   "FileHash": "4a0dcd618452d123fab76723c54ae035"
@@ -739,6 +780,8 @@ Content-Type: application/json
 ```
 
 > **Lưu ý:** Response trả về **Song entity** (có `SongId`), KHÔNG phải SongDto. Nếu không truyền Thumbnail, server tự tạo DiceBear avatar.
+> Nếu truyền `ScheduledReleaseAt` trong tương lai: bài hát sẽ ở trạng thái `scheduled`, chưa public ngay.
+> Nếu gói hiện tại không có quyền schedule: trả về **403 Forbidden** với message `Scheduling feature is not available for current plan`.
 
 ---
 
@@ -754,11 +797,13 @@ Content-Type: application/json
   "Lyrics": "Lời bài hát...",
   "IsPublic": true,
   "AlbumId": "guid | null",
-  "GenreIds": ["guid1", "guid2"]
+  "GenreIds": ["guid1", "guid2"],
+  "ScheduledReleaseAt": "2026-03-26T14:00:00Z (optional, UTC)"
 }
 ```
 
 > Tất cả fields đều **optional**. Chỉ chủ sở hữu bài hát mới có thể chỉnh sửa.
+> Nếu bài hát đã `published` thì không thể schedule lại, API trả về **409 Conflict**.
 
 **Response (200 OK):**
 
@@ -767,8 +812,6 @@ Content-Type: application/json
   "Message": "Cập nhật bài hát thành công"
 }
 ```
-
----
 
 ### 22. Delete Song ✅
 
@@ -1788,24 +1831,56 @@ GET /Recommendation/albums/{userId}?topN=10
   "AlbumTitle": "abc",
   "ArtistNames": "Dinh The Danh",
   "ArtistIds": ["514685e6-5141-40c6-84c6-37c43da959aa"],
+  "ScheduledReleaseAt": null,
+  "ReleaseStatus": "published",
+  "PublishedAt": "2026-03-01T15:25:19",
   "CreatedAt": "2026-01-27T00:07:34",
   "UpdatedAt": "2026-03-01T15:25:19"
 }
 ```
 
-| Field       | Type     | Nullable | Mô tả                                     |
-| ----------- | -------- | -------- | ----------------------------------------- |
-| Id          | Guid     | ❌       | ID bài hát                                |
-| Title       | string   | ❌       | Tên bài hát                               |
-| Thumbnail   | string   | ✅       | Ảnh bìa                                   |
-| FileUrl     | string   | ❌       | URL file nhạc (Cloudinary)                |
-| Duration    | int      | ❌       | Thời lượng (giây)                         |
-| AlbumId     | Guid     | ✅       | ID album chứa bài hát (null nếu không có) |
-| AlbumTitle  | string   | ✅       | Tên album (null nếu không có)             |
-| ArtistNames | string   | ✅       | Tên nghệ sĩ, phân cách bằng ", "          |
-| ArtistIds   | Guid[]   | ❌       | Danh sách ID nghệ sĩ                      |
-| CreatedAt   | DateTime | ❌       | Ngày tạo                                  |
-| UpdatedAt   | DateTime | ✅       | Ngày cập nhật                             |
+| Field              | Type     | Nullable | Mô tả                                                    |
+| ------------------ | -------- | -------- | -------------------------------------------------------- |
+| Id                 | Guid     | ❌       | ID bài hát                                               |
+| Title              | string   | ❌       | Tên bài hát                                              |
+| Thumbnail          | string   | ✅       | Ảnh bìa                                                  |
+| FileUrl            | string   | ❌       | URL file nhạc (Cloudinary)                               |
+| Duration           | int      | ❌       | Thời lượng (giây)                                        |
+| AlbumId            | Guid     | ✅       | ID album chứa bài hát (null nếu không có)                |
+| AlbumTitle         | string   | ✅       | Tên album (null nếu không có)                            |
+| ArtistNames        | string   | ✅       | Tên nghệ sĩ, phân cách bằng ", "                         |
+| ArtistIds          | Guid[]   | ❌       | Danh sách ID nghệ sĩ                                     |
+| ScheduledReleaseAt | DateTime | ✅       | Thời điểm phát hành theo lịch (UTC)                      |
+| ReleaseStatus      | string   | ❌       | Trạng thái phát hành: pending/scheduled/published/failed |
+| PublishedAt        | DateTime | ✅       | Thời điểm đã publish                                     |
+| CreatedAt          | DateTime | ❌       | Ngày tạo                                                 |
+| UpdatedAt          | DateTime | ✅       | Ngày cập nhật                                            |
+
+### ScheduledSongQueueItemDto
+
+```json
+{
+  "SongId": "a6f970fe-7549-41e1-8244-d1a2aa5aae1d",
+  "Title": "My Scheduled Track",
+  "ArtistNames": "Dinh The Danh",
+  "Thumbnail": "https://res.cloudinary.com/.../thumb.jpg",
+  "ScheduledReleaseAt": "2026-03-26T14:00:00",
+  "ReleaseStatus": "scheduled",
+  "CreatedAt": "2026-03-21T10:00:00",
+  "UpdatedAt": "2026-03-21T10:05:00"
+}
+```
+
+| Field              | Type     | Nullable | Mô tả                              |
+| ------------------ | -------- | -------- | ---------------------------------- |
+| SongId             | Guid     | ❌       | ID bài hát                         |
+| Title              | string   | ❌       | Tên bài hát                        |
+| ArtistNames        | string   | ❌       | Danh sách nghệ sĩ (chuỗi)          |
+| Thumbnail          | string   | ✅       | Ảnh bài hát                        |
+| ScheduledReleaseAt | DateTime | ✅       | Thời điểm phát hành theo lịch      |
+| ReleaseStatus      | string   | ❌       | pending/scheduled/published/failed |
+| CreatedAt          | DateTime | ❌       | Ngày tạo                           |
+| UpdatedAt          | DateTime | ✅       | Ngày cập nhật                      |
 
 ### AlbumDto
 
@@ -2610,6 +2685,7 @@ Hệ thống tự động gửi thông báo (notification + SignalR push) trong 
 | -    | **MUSIC (SONGS)**                              |        |      |                                |
 | 18   | `/Music/songs`                                 | GET    | ❌   | Tất cả bài hát (search)        |
 | 19   | `/Music/my-songs`                              | GET    | ✅   | Bài hát của mình               |
+| 19.5 | `/Music/my-scheduled-songs`                    | GET    | ✅   | Hàng chờ phát hành của mình    |
 | 20   | `/Music/song`                                  | POST   | ✅   | Tạo bài hát                    |
 | 21   | `/Music/song/{id}`                             | PUT    | ✅   | Cập nhật bài hát               |
 | 22   | `/Music/song/{id}`                             | DELETE | ✅   | Xóa bài hát                    |
@@ -2688,4 +2764,4 @@ Hệ thống tự động gửi thông báo (notification + SignalR push) trong 
 
 ---
 
-**Total: 9 Auth + 3 User + 4 Artist + 3 File + 32 Feature + 5 Payment + 7 Subscription + 2 Genre (Admin) + 15 Admin + 4 Notification = 84 Endpoints** ✅
+**Total: 9 Auth + 3 User + 4 Artist + 3 File + 33 Feature + 5 Payment + 7 Subscription + 2 Genre (Admin) + 15 Admin + 4 Notification = 85 Endpoints** ✅

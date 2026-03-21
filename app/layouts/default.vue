@@ -454,6 +454,7 @@ const data = ref(null);
 const toast = useToast();
 const { t, locale, setLocale } = useI18n();
 const switchLocalePath = useSwitchLocalePath();
+const localePath = useLocalePath();
 const { logout, user, saveTokens } = useAuth();
 const likedSongsStore = useLikedSongsStore();
 const isLocaleSyncing = ref(false);
@@ -618,11 +619,11 @@ const isArtistOrAdmin = computed(() => {
   const role = userRole.value;
   return role && role !== "User";
 });
+const canUseSchedule = computed(() => {
+  const role = String(userRole.value || "");
+  return role === "ArtistPremium" || role === "Admin";
+});
 const isAdmin = computed(() => userRole.value === "Admin");
-
-const navigateToMyMusic = () => {
-  navigateTo("/user/my-music");
-};
 
 // Handle logout
 const handleLogout = async () => {
@@ -654,9 +655,8 @@ const dropdownItems = computed(() => {
       },
       {
         label: t("song.my_music"),
-        to: "/user/my-music",
+        to: localePath("/user/my-music"),
         icon: "i-lucide-music",
-        onSelect: navigateToMyMusic,
       },
       {
         label: t("song.my_albums"),
@@ -665,10 +665,18 @@ const dropdownItems = computed(() => {
       },
       {
         label: t("header.create_song"),
-        to: "/create/song",
+        to: localePath("/create/song"),
         icon: "i-lucide-plus-circle",
       },
     );
+
+    if (canUseSchedule.value) {
+      items.push({
+        label: t("song.release_schedule"),
+        to: "/user/release-schedule",
+        icon: "i-lucide-calendar-clock",
+      });
+    }
   }
 
   // Admin panel

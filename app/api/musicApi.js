@@ -41,6 +41,11 @@ const musicApi = {
     return axiosClient.get("/Music/my-songs", { params });
   },
 
+  // Lấy danh sách bài hát trong hàng chờ phát hành của user hiện tại
+  getMyScheduledSongs(params) {
+    return axiosClient.get("/Music/my-scheduled-songs", { params });
+  },
+
   // Lấy albums của user hiện tại
   getMyAlbums(params) {
     return axiosClient.get("/Music/my-albums", { params });

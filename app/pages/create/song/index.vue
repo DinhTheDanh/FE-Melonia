@@ -295,6 +295,30 @@
             {{ $t("song.no_album_notice") }}
           </p>
 
+          <div v-if="canUseSchedule" class="mt-5">
+            <UFormGroup
+              :label="$t('song.schedule_release_time')"
+              :ui="labelStyle"
+              class="min-w-0"
+            >
+              <VueDatePicker
+                v-model="form.scheduledReleaseAt"
+                model-type="iso"
+                :enable-time-picker="true"
+                :is-24="true"
+                :minutes-grid-increment="5"
+                :min-date="new Date()"
+                :placeholder="$t('song.schedule_release_time')"
+                :dark="true"
+                :auto-apply="true"
+                class="schedule-picker"
+              />
+            </UFormGroup>
+            <p class="text-xs text-neutral-500 mt-1">
+              {{ $t("song.schedule_release_help") }}
+            </p>
+          </div>
+
           <div
             class="pt-4 mt-3 border-t border-white/10 flex items-center justify-end gap-4"
           >
@@ -528,6 +552,8 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
+import { VueDatePicker } from "@vuepic/vue-datepicker";
+import "@vuepic/vue-datepicker/dist/main.css";
 import musicApi from "~/api/musicApi";
 import fileApi from "~/api/fileApi";
 import userApi from "~/api/userApi";
@@ -577,6 +603,7 @@ const form = reactive({
   selectedArtists: [],
   selectedGenres: [],
   selectedAlbumId: null,
+  scheduledReleaseAt: "",
 });
 
 // Styles
@@ -588,6 +615,12 @@ const inputSpotifyStyle = {
 const labelStyle = {
   label: { base: "text-neutral-300 text-sm font-bold mb-1.5" },
 };
+
+const canUseSchedule = computed(() => {
+  const role = String(currentUser.value?.Role || currentUser.value?.role || "");
+  const normalizedRole = role.toLowerCase();
+  return normalizedRole === "artistpremium" || normalizedRole === "admin";
+});
 
 onMounted(async () => {
   try {
@@ -853,6 +886,18 @@ const updateUploadStatus = (message, percent) => {
   uploadPercent.value = percent;
 };
 
+const toIsoDateTimeOrNull = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+};
+
+const isFutureDateTime = (value) => {
+  if (!value) return false;
+  const parsed = new Date(value);
+  return !Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now();
+};
+
 const getArtistId = (artist) => {
   if (!artist) return null;
   if (typeof artist === "string") return artist;
@@ -948,16 +993,32 @@ const handleSubmit = async () => {
     updateUploadStatus($t("song.saving_song_info"), 95);
 
     const createPayload = {
-      Title: form.title,
+      Title: String(form.title || "").trim(),
       FileUrl: audioUrl,
-      Thumbnail: thumbnailUrl,
       Duration: Math.round(duration || form.duration),
-      FileHash: fileHash,
       ArtistIds: [...selectedArtistIds.value],
-      AlbumId: selectedAlbumId.value || null,
       GenreIds: [...selectedGenreIds.value],
-      Lyrics: "",
     };
+
+    if (thumbnailUrl) {
+      createPayload.Thumbnail = thumbnailUrl;
+    }
+
+    if (fileHash) {
+      createPayload.FileHash = fileHash;
+    }
+
+    if (selectedAlbumId.value) {
+      createPayload.AlbumId = selectedAlbumId.value;
+    }
+
+    const scheduledReleaseAt = toIsoDateTimeOrNull(form.scheduledReleaseAt);
+    if (canUseSchedule.value && scheduledReleaseAt) {
+      createPayload.ScheduledReleaseAt = scheduledReleaseAt;
+      if (isFutureDateTime(scheduledReleaseAt)) {
+        createPayload.IsPublic = false;
+      }
+    }
 
     await musicApi.createSong(createPayload);
 
@@ -997,6 +1058,7 @@ const resetForm = () => {
   form.duration = 0;
   form.selectedGenres = [];
   form.selectedAlbumId = null;
+  form.scheduledReleaseAt = "";
   form.selectedArtists = currentUser.value ? [currentUser.value] : [];
   showOwnershipModal.value = false;
   ownershipAccepted.value = false;
@@ -1022,6 +1084,47 @@ const formatDuration = (s) => {
 </script>
 
 <style scoped>
+:deep(.schedule-picker .dp__main) {
+  width: 100%;
+}
+
+:deep(.schedule-picker .dp__input_wrap) {
+  width: 100%;
+  display: block;
+}
+
+:deep(.schedule-picker .dp__input) {
+  background: #3e3e3e;
+  color: #fff;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  min-height: 3rem;
+  line-height: 1.25rem;
+  padding: 0.75rem 2.4rem 0.75rem 2.2rem;
+  font-size: 0.95rem;
+}
+
+:deep(.schedule-picker .dp__input_icon) {
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgb(163 163 163);
+}
+
+:deep(.schedule-picker .dp__clear_icon) {
+  right: 0.75rem;
+}
+
+:deep(.schedule-picker .dp__input:focus) {
+  border-color: rgb(29 185 84 / 0.8);
+}
+
+:deep(.schedule-picker .dp__menu) {
+  background: #1f1f1f;
+  border-color: rgb(255 255 255 / 0.12);
+  z-index: 60;
+}
+
 @keyframes modal-shake {
   0%,
   100% {

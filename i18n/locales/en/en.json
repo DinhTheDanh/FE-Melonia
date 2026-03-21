@@ -257,7 +257,19 @@
     "next": "Next",
     "selected": "selected",
     "album_created_success": "Album created successfully!",
-    "album_create_error": "Failed to create album. Please try again."
+    "album_create_error": "Failed to create album. Please try again.",
+    "release_schedule": "Release schedule",
+    "release_queue_title": "Pending release songs",
+    "release_queue_subtitle": "Track songs that are pending and songs that are about to be released.",
+    "pending_release": "Pending",
+    "upcoming_release": "Upcoming",
+    "no_release_queue": "No songs in release queue",
+    "no_release_queue_help": "Set a release time when creating or editing songs to track them here.",
+    "schedule_release_time": "Release time (optional)",
+    "schedule_release_help": "If you choose a future time, the song will be considered pending release.",
+    "time_remaining": "Time remaining",
+    "ready_for_publish": "Ready to publish",
+    "refresh": "Refresh"
   },
   "album": {
     "type_label": "Album",

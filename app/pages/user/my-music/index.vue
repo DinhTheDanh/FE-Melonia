@@ -56,6 +56,17 @@
               <UIcon name="i-lucide-plus-circle" class="size-7" />
             </button>
           </NuxtLink>
+
+          <NuxtLink v-if="canUseSchedule" to="/user/release-schedule">
+            <button
+              class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-neutral-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+            >
+              <UIcon name="i-lucide-calendar-clock" class="size-4" />
+              <span class="text-xs font-semibold">{{
+                $t("song.release_schedule")
+              }}</span>
+            </button>
+          </NuxtLink>
         </div>
 
         <div v-else class="absolute inset-0 flex items-center gap-3 px-2">
@@ -372,6 +383,33 @@
             />
           </div>
 
+          <!-- Artists & Featuring -->
+          <div>
+            <label class="block text-sm font-medium text-neutral-300 mb-2">
+              {{ $t("song.artists_featuring") }}
+            </label>
+            <USelectMenu
+              v-model="editForm.artists"
+              multiple
+              :items="availableArtists"
+              label-key="Name"
+              value-key="Id"
+              :placeholder="$t('song.artists_placeholder')"
+              size="lg"
+              :ui="{
+                base: 'bg-[#3E3E3E] text-white rounded-md',
+              }"
+              :ui-menu="{
+                background: 'bg-[#282828] border border-neutral-700',
+                option: { active: 'bg-[#3E3E3E]' },
+              }"
+            >
+              <template #item="{ item }">
+                <span class="truncate">{{ item.Name }}</span>
+              </template>
+            </USelectMenu>
+          </div>
+
           <!-- Cover Image -->
           <div>
             <label class="block text-sm font-medium text-neutral-300 mb-2">
@@ -445,6 +483,27 @@
               rows="4"
               class="w-full bg-[#3E3E3E] text-white px-4 py-3 rounded-md border border-transparent focus:border-purple-500 outline-none placeholder:text-neutral-500 transition-colors resize-none"
             ></textarea>
+          </div>
+
+          <div v-if="canUseSchedule">
+            <label class="block text-sm font-medium text-neutral-300 mb-2">
+              {{ $t("song.schedule_release_time") }}
+            </label>
+            <VueDatePicker
+              v-model="editForm.scheduledReleaseAt"
+              model-type="iso"
+              :enable-time-picker="true"
+              :is-24="true"
+              :minutes-grid-increment="5"
+              :min-date="new Date()"
+              :placeholder="$t('song.schedule_release_time')"
+              :dark="true"
+              :auto-apply="true"
+              class="schedule-picker"
+            />
+            <p class="text-xs text-neutral-500 mt-2">
+              {{ $t("song.schedule_release_help") }}
+            </p>
           </div>
 
           <!-- Buttons -->
@@ -548,8 +607,11 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from "vue";
+import { VueDatePicker } from "@vuepic/vue-datepicker";
+import "@vuepic/vue-datepicker/dist/main.css";
 import { useDominantColor } from "~/composables/useDominantColor";
 import musicApi from "~/api/musicApi";
+import artistApi from "~/api/artistApi";
 import fileApi from "~/api/fileApi";
 import userApi from "~/api/userApi";
 import { usePlayerStore } from "~/stores/usePlayerStore";
@@ -559,6 +621,12 @@ const { t } = useI18n();
 const toast = useToast();
 const playerStore = usePlayerStore();
 const { user } = useAuth();
+
+const canUseSchedule = computed(() => {
+  const role = String(user.value?.role || "");
+  const normalizedRole = role.toLowerCase();
+  return normalizedRole === "artistpremium" || normalizedRole === "admin";
+});
 
 const isArtistOrAdminRole = (role) => {
   const normalizedRole = String(role || "")
@@ -596,6 +664,7 @@ const isSaving = ref(false);
 const isDeleting = ref(false);
 const editImageInputRef = ref(null);
 const availableGenres = ref([]);
+const availableArtists = ref([]);
 const selectedSongs = ref([]);
 const isSearchFocused = ref(false);
 const userName = ref("You");
@@ -711,8 +780,10 @@ const toggleSelectSong = (songId) => {
 const editForm = reactive({
   songId: null,
   title: "",
+  artists: [],
   genres: [],
   lyrics: "",
+  scheduledReleaseAt: "",
   coverFile: null,
   coverPreview: null,
 });
@@ -723,6 +794,7 @@ const selectedSongToDelete = ref(null);
 onMounted(async () => {
   await fetchMySongs();
   await fetchGenres();
+  await fetchArtists();
 });
 
 // API calls
@@ -755,6 +827,29 @@ const fetchGenres = async () => {
   }
 };
 
+const fetchArtists = async () => {
+  try {
+    const res = await artistApi.getArtists({ pageIndex: 1, pageSize: 500 });
+    const list = res?.Data || res?.data || res || [];
+    const seen = new Set();
+
+    availableArtists.value = (Array.isArray(list) ? list : [])
+      .map((artist) => ({
+        Id: String(artist?.UserId || artist?.Id || artist?.ArtistId || ""),
+        Name: artist?.FullName || artist?.ArtistName || artist?.Name || "",
+      }))
+      .filter((artist) => {
+        if (!artist.Id || !artist.Name) return false;
+        if (seen.has(artist.Id)) return false;
+        seen.add(artist.Id);
+        return true;
+      });
+  } catch (error) {
+    console.error("Error fetching artists:", error);
+    availableArtists.value = [];
+  }
+};
+
 // Formatters
 const formatDuration = (seconds) => {
   if (!seconds) return "0:00";
@@ -776,6 +871,28 @@ const formatRelativeDate = (date) => {
   if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
 
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+const toIsoDateTimeOrNull = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+};
+
+const isFutureDateTime = (value) => {
+  if (!value) return false;
+  const parsed = new Date(value);
+  return !Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now();
+};
+
+const extractScheduledRelease = (song) => {
+  return (
+    song?.ScheduledReleaseAt ||
+    song?.ScheduledAt ||
+    song?.PublishAt ||
+    song?.ReleaseAt ||
+    null
+  );
 };
 
 const normalizeArtistField = (value) => {
@@ -918,8 +1035,12 @@ const openSongMenu = (song) => {
 const openEditModal = (song) => {
   editForm.songId = song.Id || song.SongId;
   editForm.title = song.Title;
+  editForm.artists = normalizeArtistField(song.ArtistIds || song.ArtistId);
   editForm.genres = song.GenreIds || [];
   editForm.lyrics = song.Lyrics || "";
+  editForm.scheduledReleaseAt = canUseSchedule.value
+    ? toIsoDateTimeOrNull(extractScheduledRelease(song)) || ""
+    : "";
   editForm.coverPreview = song.Thumbnail;
   editForm.coverFile = null;
   isEditModalOpen.value = true;
@@ -930,8 +1051,10 @@ const closeEditModal = () => {
   Object.assign(editForm, {
     songId: null,
     title: "",
+    artists: [],
     genres: [],
     lyrics: "",
+    scheduledReleaseAt: "",
     coverFile: null,
     coverPreview: null,
   });
@@ -953,18 +1076,29 @@ const handleEditSave = async () => {
   isSaving.value = true;
   try {
     let thumbnailUrl = editForm.coverPreview;
+    const scheduledReleaseAt = toIsoDateTimeOrNull(editForm.scheduledReleaseAt);
 
     if (editForm.coverFile) {
       const uploadRes = await fileApi.uploadImage(editForm.coverFile);
       thumbnailUrl = uploadRes.Url || uploadRes.url;
     }
 
-    await musicApi.updateSong(editForm.songId, {
+    const updatePayload = {
       Title: editForm.title,
       Thumbnail: thumbnailUrl,
       Lyrics: editForm.lyrics,
+      ArtistIds: editForm.artists,
       GenreIds: editForm.genres,
-    });
+    };
+
+    if (canUseSchedule.value && scheduledReleaseAt) {
+      updatePayload.ScheduledReleaseAt = scheduledReleaseAt;
+      if (isFutureDateTime(scheduledReleaseAt)) {
+        updatePayload.IsPublic = false;
+      }
+    }
+
+    await musicApi.updateSong(editForm.songId, updatePayload);
 
     toast.add({
       title: t("song.success_title"),
@@ -1075,6 +1209,47 @@ const handleBulkDelete = async () => {
 </script>
 
 <style scoped>
+:deep(.schedule-picker .dp__main) {
+  width: 100%;
+}
+
+:deep(.schedule-picker .dp__input_wrap) {
+  width: 100%;
+  display: block;
+}
+
+:deep(.schedule-picker .dp__input) {
+  background: #3e3e3e;
+  color: #fff;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  min-height: 3rem;
+  line-height: 1.25rem;
+  padding: 0.75rem 2.4rem 0.75rem 2.2rem;
+  font-size: 0.95rem;
+}
+
+:deep(.schedule-picker .dp__input_icon) {
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgb(163 163 163);
+}
+
+:deep(.schedule-picker .dp__clear_icon) {
+  right: 0.75rem;
+}
+
+:deep(.schedule-picker .dp__input:focus) {
+  border-color: rgb(168 85 247 / 0.8);
+}
+
+:deep(.schedule-picker .dp__menu) {
+  background: #1f1f1f;
+  border-color: rgb(255 255 255 / 0.12);
+  z-index: 60;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;

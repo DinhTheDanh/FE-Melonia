@@ -257,7 +257,19 @@
     "next": "Tiếp",
     "selected": "đã chọn",
     "album_created_success": "Tạo album thành công!",
-    "album_create_error": "Không thể tạo album. Vui lòng thử lại."
+    "album_create_error": "Không thể tạo album. Vui lòng thử lại.",
+    "release_schedule": "Lịch phát hành",
+    "release_queue_title": "Bài hát chờ phát hành",
+    "release_queue_subtitle": "Theo dõi các bài hát đang pending và các bài sắp phát hành.",
+    "pending_release": "Đang pending",
+    "upcoming_release": "Sắp phát hành",
+    "no_release_queue": "Không có bài hát nào trong hàng chờ phát hành",
+    "no_release_queue_help": "Hãy đặt lịch phát hành khi tạo hoặc chỉnh sửa bài hát để theo dõi tại đây.",
+    "schedule_release_time": "Thời gian phát hành (tùy chọn)",
+    "schedule_release_help": "Nếu chọn thời gian trong tương lai, hệ thống sẽ xem bài hát là đang chờ phát hành.",
+    "time_remaining": "Thời gian còn lại",
+    "ready_for_publish": "Sẵn sàng phát hành",
+    "refresh": "Làm mới"
   },
   "album": {
     "type_label": "Album",
