@@ -8,6 +8,13 @@ const recommendationApi = {
     });
   },
 
+  // Lấy danh sách bài hát liên quan theo bài hát hiện tại
+  getRelatedSongs(songId, params = {}) {
+    return axiosClient.get(`/Recommendation/related-songs/${songId}`, {
+      params,
+    });
+  },
+
   // Lấy danh sách album đề xuất cho user
   getRecommendedAlbums(userId, topN = 10) {
     return axiosClient.get(`/Recommendation/albums/${userId}`, {

@@ -831,7 +831,6 @@ const uploadCoverImage = async () => {
     updateUploadStatus($t("song.upload_cover_image"), 30);
     return imgRes.Url || imgRes.url;
   } catch (error) {
-    console.error("Error uploading cover image:", error);
     throw error;
   }
 };
@@ -843,12 +842,10 @@ const checkAndUploadAudio = async () => {
     updateUploadStatus($t("song.checking_file"), 35);
 
     const fileHash = await calculateMD5(form.audioFile);
-    console.log("File Hash:", fileHash);
 
     const checkRes = await musicApi.checkHash(fileHash);
 
     if (checkRes.Exists) {
-      console.log("File already exists. Using cached URL:", checkRes.FileUrl);
       updateUploadStatus($t("song.file_exists"), 70);
       uploadPercent.value = 70;
       await new Promise((resolve) => setTimeout(resolve, 800));
@@ -858,7 +855,6 @@ const checkAndUploadAudio = async () => {
         fileHash: fileHash,
       };
     } else {
-      console.log("New file. Starting upload...");
       const filename = form.audioFile.name;
       updateUploadStatus($t("song.uploading_music", { filename }), 40);
       uploadFileInfo.value = filename;
@@ -867,7 +863,6 @@ const checkAndUploadAudio = async () => {
       const audioRes = await fileApi.uploadAudio(form.audioFile, (percent) => {
         uploadPercent.value = Math.min(40 + percent * 0.5, 90);
       });
-      console.log("Upload Response:", audioRes);
 
       return {
         audioUrl: audioRes.Url || audioRes.url,

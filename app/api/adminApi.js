@@ -52,7 +52,13 @@ const adminApi = {
   },
 
   deleteSong(songId) {
-    return axiosClient.delete(`/Admin/songs/${songId}`);
+    const normalizedSongId = String(songId || "").trim();
+    if (!normalizedSongId) {
+      throw new Error("Invalid songId");
+    }
+    return axiosClient.delete(
+      `/Admin/songs/${encodeURIComponent(normalizedSongId)}`,
+    );
   },
 
   getGenres() {

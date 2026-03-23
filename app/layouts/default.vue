@@ -620,8 +620,10 @@ const isArtistOrAdmin = computed(() => {
   return role && role !== "User";
 });
 const canUseSchedule = computed(() => {
-  const role = String(userRole.value || "");
-  return role === "ArtistPremium" || role === "Admin";
+  const role = String(userRole.value || "")
+    .trim()
+    .toLowerCase();
+  return role === "artist" || role === "artistpremium" || role === "admin";
 });
 const isAdmin = computed(() => userRole.value === "Admin");
 

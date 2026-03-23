@@ -52,12 +52,14 @@
         <UIcon name="i-lucide-music" class="size-4 text-neutral-500" />
       </div>
       <div class="min-w-0 flex-1">
-        <p
-          class="text-sm font-medium truncate"
+        <NuxtLink
+          :to="songDetailLink"
+          class="block text-sm font-medium truncate hover:underline"
           :class="isCurrentTrack ? 'text-primary-500' : 'text-white'"
+          @click.stop
         >
           {{ song.Title }}
-        </p>
+        </NuxtLink>
         <div class="text-xs truncate">
           <template v-if="artistList.length > 0">
             <template
@@ -190,4 +192,9 @@ const formatDuration = (seconds) => {
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
+
+const songDetailLink = computed(() => {
+  const id = props.song?.SongId || props.song?.Id || props.song?.songId;
+  return id ? `/song/${id}` : "/browse/songs";
+});
 </script>

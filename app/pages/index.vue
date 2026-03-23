@@ -28,7 +28,7 @@
           )"
           :key="song.Id"
           class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
-          @click="playSong(song, recommendedSongs)"
+          @click="openSongDetail(song)"
         >
           <div class="relative mb-4">
             <img
@@ -45,9 +45,18 @@
             </div>
             <button
               class="absolute bottom-2 right-2 w-12 h-12 bg-primary-500 hover:bg-primary-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 shadow-lg shadow-black/60 hover:scale-105 cursor-pointer"
-              @click.stop="playSong(song, recommendedSongs)"
+              @click.stop="toggleSongPlayback(song, recommendedSongs)"
             >
-              <UIcon name="i-fa6-solid-play" class="size-4 text-white ml-0.5" />
+              <UIcon
+                v-if="isSongPlaying(song)"
+                name="i-fa6-solid-pause"
+                class="size-4 text-white"
+              />
+              <UIcon
+                v-else
+                name="i-fa6-solid-play"
+                class="size-4 text-white ml-0.5"
+              />
             </button>
           </div>
           <p class="text-white font-semibold text-sm truncate">
@@ -215,7 +224,7 @@
           v-for="song in allSongs.slice(0, popularSongsVisibleCount)"
           :key="song.Id"
           class="group hover:bg-[#282828] rounded-lg p-3 transition-all duration-300 cursor-pointer"
-          @click="playSong(song, allSongs)"
+          @click="openSongDetail(song)"
         >
           <div class="relative mb-4">
             <img
@@ -232,9 +241,18 @@
             </div>
             <button
               class="absolute bottom-2 right-2 w-12 h-12 bg-primary-500 hover:bg-primary-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 shadow-lg shadow-black/60 hover:scale-105 cursor-pointer"
-              @click.stop="playSong(song, allSongs)"
+              @click.stop="toggleSongPlayback(song, allSongs)"
             >
-              <UIcon name="i-fa6-solid-play" class="size-4 text-white ml-0.5" />
+              <UIcon
+                v-if="isSongPlaying(song)"
+                name="i-fa6-solid-pause"
+                class="size-4 text-white"
+              />
+              <UIcon
+                v-else
+                name="i-fa6-solid-play"
+                class="size-4 text-white ml-0.5"
+              />
             </button>
           </div>
           <p class="text-white font-semibold text-sm truncate">
@@ -329,7 +347,9 @@
             :key="`skeleton-${section}-${item}`"
             class="rounded-lg p-3 bg-[#1a1a1a]"
           >
-            <div class="w-full aspect-square rounded-md bg-neutral-800/80 mb-4"></div>
+            <div
+              class="w-full aspect-square rounded-md bg-neutral-800/80 mb-4"
+            ></div>
             <div class="h-4 w-3/4 rounded bg-neutral-800/80"></div>
             <div class="h-3 w-1/2 rounded bg-neutral-800/60 mt-2"></div>
             <div class="flex items-center gap-3 mt-3">
@@ -569,6 +589,35 @@ const attachGridObservers = () => {
 const playSong = (song, queue) => {
   const index = queue.findIndex((s) => s.Id === song.Id);
   playerStore.playTrack(song, queue, index >= 0 ? index : 0);
+};
+
+const getSongId = (song) => {
+  return String(song?.SongId || song?.Id || song?.songId || "").trim();
+};
+
+const isSongPlaying = (song) => {
+  const currentId = getSongId(playerStore.currentTrack);
+  const targetId = getSongId(song);
+  if (!currentId || !targetId) return false;
+  return currentId === targetId && playerStore.isPlaying;
+};
+
+const toggleSongPlayback = (song, queue) => {
+  const currentId = getSongId(playerStore.currentTrack);
+  const targetId = getSongId(song);
+
+  if (currentId && targetId && currentId === targetId) {
+    playerStore.togglePlay();
+    return;
+  }
+
+  playSong(song, queue);
+};
+
+const openSongDetail = async (song) => {
+  const id = getSongId(song);
+  if (!id) return;
+  await navigateTo(`/song/${id}`);
 };
 
 // Play all songs by an artist

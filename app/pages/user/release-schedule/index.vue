@@ -178,9 +178,12 @@ const isLoading = ref(false);
 const activeTab = ref("pending");
 
 const canUseSchedule = computed(() => {
-  const role = String(user.value?.role || "");
-  const normalizedRole = role.toLowerCase();
-  return normalizedRole === "artistpremium" || normalizedRole === "admin";
+  const role = String(user.value?.Role || user.value?.role || "")
+    .trim()
+    .toLowerCase();
+  return (
+    role === "artist" || role === "artistpremium" || role === "admin"
+  );
 });
 
 const parseItems = (res) => {

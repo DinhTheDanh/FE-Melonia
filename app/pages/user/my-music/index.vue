@@ -623,9 +623,10 @@ const playerStore = usePlayerStore();
 const { user } = useAuth();
 
 const canUseSchedule = computed(() => {
-  const role = String(user.value?.role || "");
-  const normalizedRole = role.toLowerCase();
-  return normalizedRole === "artistpremium" || normalizedRole === "admin";
+  const role = String(user.value?.Role || user.value?.role || "")
+    .trim()
+    .toLowerCase();
+  return role === "artist" || role === "artistpremium" || role === "admin";
 });
 
 const isArtistOrAdminRole = (role) => {

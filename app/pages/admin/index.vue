@@ -953,6 +953,27 @@ const formatCurrency = (a) => {
   if (!a) return "0₫";
   return Number(a).toLocaleString("vi-VN") + "₫";
 };
+const getErrorMessage = (error) => {
+  return (
+    error?.Message ||
+    error?.message ||
+    error?.response?.data?.Message ||
+    error?.response?.data?.message ||
+    t("admin.action_failed")
+  );
+};
+const getSongId = (song) => {
+  return (
+    String(
+      song?.SongId ||
+        song?.Id ||
+        song?.songId ||
+        song?.songID ||
+        song?.ID ||
+        "",
+    ).trim() || null
+  );
+};
 const getPendingDays = (d) => {
   if (!d) return 0;
   return Math.floor((new Date() - new Date(d)) / 864e5);
@@ -1049,7 +1070,21 @@ const executeConfirmedAction = async () => {
         });
         break;
       case "deleteSong":
-        await adminApi.deleteSong(data.Id || data.SongId);
+        {
+          const songId = getSongId(data);
+          if (!songId) {
+            throw new Error("Không tìm thấy songId hợp lệ để xóa");
+          }
+          try {
+            await adminApi.deleteSong(songId);
+          } catch (adminDeleteError) {
+            await musicApi.deleteSong(songId);
+            console.warn(
+              "Admin delete endpoint failed, fallback to Music/song delete:",
+              adminDeleteError,
+            );
+          }
+        }
         toast.add({
           title: t("notify.success"),
           description: t("admin.song_deleted"),
@@ -1133,11 +1168,13 @@ const executeConfirmedAction = async () => {
     } else {
       await fetchTabData();
     }
-    if (action === "deleteGenre") await fetchStats();
+    if (action === "deleteSong" || action === "deleteGenre") {
+      await fetchStats();
+    }
   } catch (error) {
     toast.add({
       title: t("notify.error"),
-      description: t("admin.action_failed"),
+      description: getErrorMessage(error),
       color: "red",
     });
   }
@@ -1293,7 +1330,7 @@ const saveGenre = async () => {
   } catch (error) {
     toast.add({
       title: t("notify.error"),
-      description: t("admin.action_failed"),
+      description: getErrorMessage(error),
       color: "red",
     });
   }
@@ -1448,42 +1485,41 @@ const fetchStats = async () => {
   }
 
   try {
-    // Always sync total users from users endpoint to reflect all accounts.
-    const usersRes = await adminApi
-      .getUsers({ pageIndex: 1, pageSize: 1 })
-      .catch(() => null);
+    const [usersRes, artistsRes, songsRes, genresRes, subscriptionsRes] =
+      await Promise.all([
+        adminApi.getUsers({ pageIndex: 1, pageSize: 1 }).catch(() => null),
+        artistApi.getArtists({ pageIndex: 1, pageSize: 1 }).catch(() => null),
+        musicApi.getSongs({ pageIndex: 1, pageSize: 1 }).catch(() => null),
+        musicApi.getGenres().catch(() => null),
+        adminApi
+          .getSubscriptions({ pageIndex: 1, pageSize: 1 })
+          .catch(() => null),
+      ]);
+
     if (usersRes) {
       stats.value.totalUsers =
         usersRes.TotalRecords || usersRes.TotalCount || stats.value.totalUsers;
     }
-  } catch {
-    /* ignore */
-  }
-
-  try {
-    if (!stats.value.totalArtists) {
-      const r = await artistApi
-        .getArtists({ pageIndex: 1, pageSize: 1 })
-        .catch(() => null);
-      if (r) stats.value.totalArtists = r.TotalRecords || r.TotalCount || 0;
+    if (artistsRes) {
+      stats.value.totalArtists =
+        artistsRes.TotalRecords ||
+        artistsRes.TotalCount ||
+        stats.value.totalArtists;
     }
-    if (!stats.value.totalSongs) {
-      const r = await musicApi
-        .getSongs({ pageIndex: 1, pageSize: 1 })
-        .catch(() => null);
-      if (r) stats.value.totalSongs = r.TotalRecords || r.TotalCount || 0;
+    if (songsRes) {
+      stats.value.totalSongs =
+        songsRes.TotalRecords || songsRes.TotalCount || stats.value.totalSongs;
     }
-    if (!stats.value.totalGenres) {
-      const r = await musicApi.getGenres().catch(() => null);
-      if (r)
-        stats.value.totalGenres = (Array.isArray(r) ? r : r?.Data || []).length;
+    if (genresRes) {
+      stats.value.totalGenres = (
+        Array.isArray(genresRes) ? genresRes : genresRes?.Data || []
+      ).length;
     }
-    if (!stats.value.totalSubscriptions) {
-      const r = await adminApi
-        .getSubscriptions({ pageIndex: 1, pageSize: 1 })
-        .catch(() => null);
-      if (r)
-        stats.value.totalSubscriptions = r.TotalRecords || r.TotalCount || 0;
+    if (subscriptionsRes) {
+      stats.value.totalSubscriptions =
+        subscriptionsRes.TotalRecords ||
+        subscriptionsRes.TotalCount ||
+        stats.value.totalSubscriptions;
     }
   } catch {
     /* ignore */

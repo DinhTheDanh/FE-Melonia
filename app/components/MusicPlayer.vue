@@ -1,5 +1,4 @@
 <template>
-  <!-- Music Player Footer - Spotify Style -->
   <div
     class="fixed bottom-0 left-0 right-0 h-[90px] bg-black z-50 border-t border-white/5 select-none"
   >
@@ -43,6 +42,7 @@
             <div class="flex items-center gap-1.5">
               <p
                 class="text-sm text-white font-medium truncate hover:underline cursor-pointer"
+                @click="goToCurrentSong"
               >
                 {{ playerStore.currentTrack.Title }}
               </p>
@@ -404,7 +404,10 @@
           <p class="text-xs font-bold text-white px-2 mb-1">
             {{ t("player.now_playing") }}
           </p>
-          <div class="flex items-center gap-3 px-2 py-2 rounded-md bg-white/5">
+          <div
+            class="flex items-center gap-3 px-2 py-2 rounded-md bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+            @click="goToCurrentSong"
+          >
             <img
               v-if="playerStore.currentTrack.Thumbnail"
               :src="playerStore.currentTrack.Thumbnail"
@@ -701,6 +704,21 @@ const goToArtist = async (artist) => {
   const artistId = await resolveArtistId(artist);
   if (!artistId) return;
   router.push(`/artist/${artistId}`);
+};
+
+const getTrackId = (track) => {
+  return String(track?.Id || track?.SongId || track?.songId || "").trim();
+};
+
+const goToCurrentSong = async () => {
+  const id = getTrackId(playerStore.currentTrack);
+  if (!id) return;
+
+  if (showQueue.value) {
+    showQueue.value = false;
+  }
+
+  await router.push(`/song/${id}`);
 };
 
 // Drag & drop for queue
